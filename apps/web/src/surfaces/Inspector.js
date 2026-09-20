@@ -52,6 +52,7 @@ export class Inspector extends BaseElement {
     body.appendChild(this._geometry(store, node));
     if (cap.fill || cap.stroke || cap.radius) body.appendChild(this._appearance(store, node, cap));
     else body.appendChild(this._opacityOnly(store, node));
+    if (node.type === 'image') body.appendChild(this._image(store, node));
     if (cap.text) body.appendChild(this._text(store, node));
   }
 
@@ -237,6 +238,74 @@ export class Inspector extends BaseElement {
     const g = this._group('Appearance');
     g.appendChild(this._number('Opacity', node.opacity,
       (v) => store.update(node.id, (n) => { n.opacity = Math.min(1, Math.max(0, v)); })));
+    return g;
+  }
+
+  _image(store, node) {
+    const g = this._group('Source');
+
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.className = 'btn full';
+    pick.textContent = node.source?.ref ? 'Replace image…' : 'Choose image…';
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml';
+    input.hidden = true;
+
+    pick.addEventListener('click', () => input.click());
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      pick.disabled = true;
+      pick.textContent = 'Uploading…';
+      try {
+        const asset = await this.upload(file);
+        store.update(node.id, (n) => {
+          n.source = { ref: asset.ref, mime: asset.mime };
+          if (!n.alt) n.alt = file.name.replace(/\.[^.]+$/, '');
+        });
+      } catch (err) {
+        // Offline is the common case here, and silently doing nothing would
+        // read as a broken button.
+        this.onWarn?.(`Upload failed — is the backend running? (${err.message})`);
+        pick.disabled = false;
+        pick.textContent = 'Choose image…';
+      }
+    });
+
+    g.append(pick, input);
+
+    const scale = document.createElement('div');
+    scale.className = 'segmented';
+    for (const v of ['crop', 'fit', 'fill']) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = v;
+      b.setAttribute('aria-pressed', String(node.contentScale === v));
+      b.addEventListener('click', () => store.update(node.id, (n) => { n.contentScale = v; }));
+      scale.appendChild(b);
+    }
+    g.appendChild(Object.assign(document.createElement('p'),
+      { className: 'sub', textContent: 'Scaling' }));
+    g.appendChild(scale);
+
+    const alt = document.createElement('input');
+    alt.type = 'text';
+    alt.className = 'field-area';
+    alt.value = node.alt ?? '';
+    alt.placeholder = 'Alt text';
+    alt.setAttribute('aria-label', 'Alt text');
+    alt.addEventListener('input', () => store.update(node.id, (n) => { n.alt = alt.value; }));
+    g.appendChild(alt);
+
+    if (!node.source?.ref) {
+      g.appendChild(Object.assign(document.createElement('p'), {
+        className: 'hint hint-sm',
+        textContent: 'No image yet — the frame renders as a placeholder, which is a valid contract.',
+      }));
+    }
     return g;
   }
 

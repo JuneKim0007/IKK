@@ -10,6 +10,13 @@ import { resolvedLineHeight } from '../contract/schema.js';
  * override what genuinely differs.
  */
 export class NodeElement extends BaseElement {
+  /**
+   * Origin that asset refs resolve against. Set once at boot; the editor and
+   * the backend are not necessarily on the same host.
+   * @type {string}
+   */
+  static assetBase = '';
+
   createElement() {
     const el = document.createElement('div');
     el.className = 'node';

@@ -3,6 +3,7 @@
  * everything else depends on the store or on its own arguments.
  */
 import './elements/index.js';
+import { NodeElement } from './elements/NodeElement.js';
 import { Store } from './core/store.js';
 import { SyncClient } from './core/sync.js';
 import { Canvas } from './surfaces/Canvas.js';
@@ -10,8 +11,9 @@ import { Toolbar } from './surfaces/Toolbar.js';
 import { LayersPanel } from './surfaces/LayersPanel.js';
 import { Inspector } from './surfaces/Inspector.js';
 import { StatusBar } from './surfaces/StatusBar.js';
-import { createNode, emptyContract, REFERENCE } from './contract/schema.js';
+import { createNode, emptyContract, REFERENCE, capabilities, textPayload } from './contract/schema.js';
 import { DrawController } from './core/DrawController.js';
+import { Keymap } from './core/keymap.js';
 
 const params = new URLSearchParams(location.search);
 const BACKEND = params.get('api') ?? 'http://127.0.0.1:8000';
@@ -40,7 +42,12 @@ async function boot() {
   const root = document.getElementById('app');
   const layers = new LayersPanel(store, { onWarn: warn });
   const canvas = new Canvas(store);
+  canvas.capabilities = capabilities;
+  canvas.newText = () => textPayload('Label', 16, 'center', '#1B1D1C', 500);
   const inspector = new Inspector('inspector', { store });
+  inspector.upload = (file) => sync.uploadAsset(file);
+  inspector.onWarn = warn;
+  NodeElement.assetBase = BACKEND;
   const status = new StatusBar('status', { store });
 
   const toolbar = new Toolbar(store, {
@@ -80,26 +87,24 @@ async function boot() {
     onDone: () => toolbar.setTool('move'),
   });
 
-  addEventListener('keydown', (e) => {
-    if (e.target.matches('input, textarea')) return;
-    const map = { v: 'move', r: 'rect', o: 'ellipse', t: 'text', i: 'image' };
-    if (map[e.key.toLowerCase()]) { toolbar.setTool(map[e.key.toLowerCase()]); return; }
-    const node = store.selected;
-    if (!node) return;
-    const step = e.shiftKey ? 10 : 1;
-    const nudge = (dx, dy) => {
-      e.preventDefault();
+  new Keymap({
+    onTool: (t) => toolbar.setTool(t),
+    onUndo: () => store.undo(),
+    onDelete: () => store.selectedId && store.remove(store.selectedId),
+    onEscape: () => {
+      if (canvas.editingId) { canvas.stopEditing(store); return; }
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      store.select(null);
+    },
+    onNudge: (dx, dy) => {
+      const node = store.selected;
+      if (!node) return;
       store.update(node.id, (n) => {
         n.rect = { ...n.rect,
           x: Math.round((n.rect.x + (dx * 100) / REFERENCE.w) * 10) / 10,
           y: Math.round((n.rect.y + (dy * 100) / REFERENCE.h) * 10) / 10 };
       });
-    };
-    if (e.key === 'ArrowLeft') nudge(-step, 0);
-    if (e.key === 'ArrowRight') nudge(step, 0);
-    if (e.key === 'ArrowUp') nudge(0, -step);
-    if (e.key === 'ArrowDown') nudge(0, step);
-    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); store.remove(node.id); }
+    },
   });
 
   let lastSelection = store.selectedId;

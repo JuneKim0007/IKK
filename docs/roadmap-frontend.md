@@ -23,7 +23,8 @@ answers to the same question is how a repo stops being trustworthy.
 
 ## F1 · Web editor — `apps/web`
 
-Shipped: canvas, drag-to-draw for every type, rect/ellipse/triangle/line/text/
+Shipped: canvas, drag-to-draw for every type, in-place text editing,
+image upload, rect/ellipse/triangle/line/text/
 image renderers, selection with 8 handles, move, resize, nudge, layers with
 rename and V14 enforcement, capability-driven inspector, status bar with live
 validation. Those items are deleted from this list, not ticked.
@@ -37,11 +38,12 @@ sync silently loses the edit.
 
 **Interaction**
 
-- [ ] **F1.12** Double-click to edit text in place
 - [ ] **F1.14** Undo is currently a contract snapshot stack. Replace with a
       command stack: snapshots do not bump per-node `version`, so an undo that
       restores a node the server already has looks like no change at all
 - [ ] **F1.21** Zoom and pan on the canvas
+- [ ] **F1.24** Keyboard shortcut reference in the UI. The keymap is central
+      now (`core/keymap.js`) but nothing tells a new user that `R` exists
 - [ ] **F1.22** Outlined triangles — needs a drawn path on both surfaces,
       because `clip-path` clips a CSS border away while Compose's `.border`
       follows the shape (rule V16 forbids the half-working version)

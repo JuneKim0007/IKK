@@ -100,6 +100,8 @@ button { cursor: pointer; }
 }
 .node:hover:not(.is-selected) { outline: 1px dashed var(--accent); }
 .node.is-selected { outline: 1.5px solid var(--accent); }
+.node.is-editing { outline: 1.5px solid var(--accent); cursor: text; }
+.node.is-editing .node-text { cursor: text; outline: none; }
 .node-text { width: 100%; padding: 0 6px; white-space: pre-wrap; word-break: break-word;
              display: flex; align-items: center; }
 .node-triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }

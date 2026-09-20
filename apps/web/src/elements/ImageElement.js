@@ -25,7 +25,7 @@ export class ImageElement extends NodeElement {
     const ref = node.source?.ref;
     const src = !ref ? null
       : /^(https?:|data:|blob:|\/)/.test(ref) ? ref
-      : `/v1/assets/${encodeURIComponent(ref)}`;
+      : `${NodeElement.assetBase ?? ''}/v1/assets/${encodeURIComponent(ref)}`;
 
     if (!src || this._failed.has(src)) { this._placeholder(node); return; }
 

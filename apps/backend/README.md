@@ -10,6 +10,11 @@
 > **It is deleted the moment the Kotlin service passes `docs/fixtures/`** — see
 > `docs/roadmap-backend.md` B0.6. Not archived, not renamed to `legacy/`.
 > Deleted. Do not add features here.
+>
+> The asset endpoints are the one exception, and only because the editor needs
+> somewhere to put image bytes today. They are specified in `docs/api.md`, and
+> the Kotlin port must match them — treat this implementation as the reference,
+> not as a place to extend.
 
 # backend
 
