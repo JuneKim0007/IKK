@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Platform theme, so the app needs no appcompat dependency.
+         Compose draws everything above this. -->
+    <style name="Theme.IKK" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
