@@ -1,0 +1,13 @@
+{
+  "name": "ikk-codegen",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "check": "node generate.mjs --check",
+    "test": "node --test generate.test.mjs && node generate.mjs --check"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
