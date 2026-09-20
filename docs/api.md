@@ -3,153 +3,144 @@
 FastAPI. Base path `/v1`. All bodies JSON unless stated.
 Contract object shapes: [json_contract.md](json_contract.md).
 
+**This file previously described only the target design and read as current
+fact. It wasn't: `apps/backend/app/main.py` implements five routes, not the
+fourteen below.** Every section is now marked. Do not build a client against
+a "Planned" route — it will 404.
+
 ---
 
-## Health
+## Implemented
 
 ### `GET /healthz`
 Liveness.
 
-`200` → `{ "status": "ok" }`
+`200` → `{ "status": "ok", "codegen": "present" | "missing" }`
 
----
+### `POST /v1/contracts/validate`
+Run V1–V15 without storing anything. Not project-scoped — no `project_id`
+in the path, unlike every other route here.
 
-## Projects
+`200` → `{ "valid": true, "screen": "Home", "components": 7 }`
+`200` → `{ "valid": false, "violations": [ { "rule", "where", "message" } ] }`
 
-### `POST /v1/projects`
-Create a project.
+### `PUT /v1/projects/{project_id}/contract`
+Replace the **whole** contract. There is no node-level route — the web
+client's `SyncClient.flush()` PUTs the full document on every debounce tick,
+not a per-node diff.
 
-```json
-{ "name": "Inbox app" }
-```
-`201` → `{ "id": "p_7", "name": "Inbox app", "createdAt": "..." }`
+`200` → `{ "projectId", "checkpoint", "components" }`
+`422` → `{ "error": "contract_invalid", "message", "violations", "requestId" }`
 
-### `GET /v1/projects/{project_id}`
-Project metadata.
-
-`200` → `{ "id", "name", "createdAt", "updatedAt", "latestCheckpoint" }`
-`404` → not found
+**No version or conflict check.** This call overwrites whatever was stored,
+whole-document, no matter how stale the caller's copy is. `json_contract.md`
+§11's per-node last-write-wins is not implemented — it can't diverge from the
+spec because nothing here reads `version` at all yet. Safe today because
+there is exactly one writer (no Android editor exists yet — `apps/android` is
+still the Hello World scaffold). Revisit before a second concurrent editor
+lands; see `docs/roadmap-frontend.md` F3.
 
 ### `GET /v1/projects/{project_id}/contract`
-Current contract, all nodes.
+Current contract, as last PUT.
 
 `200` → contract object
-`404` → not found
-
----
-
-## Nodes
-
-### `PUT /v1/projects/{project_id}/nodes`
-Batch upsert. Per-node last-write-wins.
-
-```json
-{ "nodes": [ { "id", "type", "version", "updatedAt", "payload" } ] }
-```
-`200` → `{ "accepted": ["n1"], "rejected": [], "checksums": { "n1": "sha256:..." } }`
-`409` → `{ "rejected": [ { "id": "n1", "reason": "stale_version", "server": { } } ] }`
-`422` → validation failure
-
-Checksums are computed server-side and returned; clients do not send them.
-
-### `DELETE /v1/projects/{project_id}/nodes/{node_id}`
-Remove a node.
-
-`204` → deleted
-`404` → not found
-
-### `POST /v1/projects/{project_id}/validate`
-Run V1–V12 without writing.
-
-`200` → `{ "valid": true }`
-`200` → `{ "valid": false, "violations": [ { "rule": "V10", "where": "ellipse_2", "message": "..." } ] }`
-
----
-
-## Checkpoints
-
-### `POST /v1/projects/{project_id}/checkpoints`
-Freeze the current contract.
-
-`201` → `{ "checkpoint": "cp_006", "createdAt": "..." }`
-`409` → contract invalid
-
-### `GET /v1/projects/{project_id}/checkpoints`
-List, newest first.
-
-`200` → `{ "checkpoints": [ { "checkpoint", "createdAt" } ] }`
-
-### `GET /v1/projects/{project_id}/checkpoints/{checkpoint}`
-Contract as frozen at that checkpoint.
-
-`200` → contract object
-`404` → not found
-
----
-
-## Generate
+`404` → `{ "error": "not_found", ... }`
 
 ### `POST /v1/projects/{project_id}/generate`
-Cut a checkpoint, run codegen, return artifacts.
+Shells out to `packages/codegen/generate.mjs` — the same emitter the CLI and
+its own test suite use; there is only one code generator in the repository.
 
-```json
-{ "targets": ["kotlin", "css", "html"] }
-```
 `200` →
 ```json
 {
   "checkpoint": "cp_006",
   "artifacts": [
-    { "name": "Home.generated.kt",  "target": "kotlin", "bytes": 1840 },
-    { "name": "home.generated.css", "target": "css",    "bytes": 920 }
+    { "name": "HomeLayout.generated.kt", "target": "kotlin", "bytes": 1840, "content": "..." },
+    { "name": "home.generated.css",      "target": "css",    "bytes": 920,  "content": "..." }
   ]
 }
 ```
-`409` → `{ "error": "dirty_contract" }` — unsynced nodes present
-`422` → contract invalid
+File contents are inlined in the response — there is no separate
+fetch-by-name call.
 
-### `GET /v1/projects/{project_id}/artifacts/{name}`
-Fetch one generated file.
+`404` → no contract stored for this project yet
+`422` → `{ "error": "codegen_failed", "message": "<generator stderr>" }`
+`500` → `{ "error": "codegen_missing" }` — the `packages/codegen` checkout is absent
 
-`200` → file body, `text/plain`
-`404` → not generated
+**Does not check for a dirty sync queue.** `component-model.md` §7 requires
+`[Generate]` to refuse while nodes are still unsynced, so the artifacts
+always match what the designer sees. That guard is not implemented — calling
+this immediately after an edit generates from whatever was last PUT, which
+may be behind the editor's local, not-yet-flushed state.
 
 ---
 
-## Assets
+## Planned — not implemented
 
-### `POST /v1/projects/{project_id}/assets`
-Upload an image for an `ImageNode`.
+Everything below is target design for later roadmap phases. Calling any of
+these routes today returns FastAPI's default 404, not the shape documented
+here.
 
-`multipart/form-data`, field `file`
+### Projects
 
-`201` → `{ "ref": "asset_12", "mime": "image/png", "bytes": 48210 }`
-`413` → too large
-`415` → unsupported type
+- `POST /v1/projects` — create a project. `201` → `{ "id", "name", "createdAt" }`
+- `GET /v1/projects/{project_id}` — metadata. `200` → `{ "id", "name", "createdAt", "updatedAt", "latestCheckpoint" }`
 
-### `GET /v1/assets/{ref}`
-Fetch an asset.
+Today a `project_id` is just whatever string a client passes to `PUT
+.../contract` — there is no creation step and no listing.
 
-`200` → binary, original content type
-`404` → not found
+### Nodes
+
+- `PUT /v1/projects/{project_id}/nodes` — batch upsert, per-node
+  last-write-wins. `{ "nodes": [ { "id", "type", "version", "updatedAt",
+  "payload" } ] }` → `200 { "accepted", "rejected", "checksums" }` / `409`
+  per stale node.
+- `DELETE /v1/projects/{project_id}/nodes/{node_id}`
+
+This is the route set that makes §11's per-node conflict resolution real.
+Until it lands, use the whole-contract PUT above.
+
+### Checkpoints
+
+- `POST /v1/projects/{project_id}/checkpoints` — freeze the current contract
+  without generating.
+- `GET /v1/projects/{project_id}/checkpoints` — list, newest first.
+- `GET /v1/projects/{project_id}/checkpoints/{checkpoint}` — contract as
+  frozen at that checkpoint.
+
+Today `checkpoint` is just a field already present on the stored contract
+object; there is no separate checkpoint store or history.
+
+### Assets
+
+- `POST /v1/projects/{project_id}/assets` — upload an image for an
+  `ImageNode`. `multipart/form-data`, field `file`. `201` → `{ "ref",
+  "mime", "bytes" }`.
+- `GET /v1/assets/{ref}` — fetch one back.
+
+No image upload path exists yet; an `ImageNode.source` has nowhere to point.
 
 ---
 
 ## Errors
 
-All non-2xx share one shape:
+Implemented and accurate — matches `apps/backend/app/shared/errors.py`.
 
 ```json
 { "error": "stale_version", "message": "...", "requestId": "req_8f3a" }
 ```
 
+`ContractInvalid` (422) additionally carries `"violations"`.
+
 | Status | Meaning |
 |---|---|
 | `400` | Malformed request |
-| `401` | Missing or invalid credentials |
 | `404` | Not found |
-| `409` | Conflict — stale version, dirty contract, invalid checkpoint |
+| `409` | Conflict — stale version, dirty contract (once those checks exist) |
 | `413` | Payload too large |
 | `415` | Unsupported media type |
 | `422` | Contract validation failed |
 | `500` | Unhandled |
+
+`401` is listed nowhere in code — there is no auth on this backend. Remove
+from this table if it stays that way; add back only once a route enforces it.
