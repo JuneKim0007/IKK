@@ -70,24 +70,30 @@ except `core`. Phase 4 is a gate, not a task: it cannot start until both land.
 
 ## Phase 0 · Foundations
 
+> **Status:** 1, 3, 4, 8, 10 done · 2 deferred with reason · 5, 6, 7, 9 open
+> (they belong to whoever takes the `frontend/web` branch).
+
 Everything that makes the later phases possible. No product value; skipping it
 costs more than doing it.
 
-- [ ] **1.** Replace the absolute JDK path in `gradle.properties` with a Gradle
+- [x] **1.** Replace the absolute JDK path in `gradle.properties` with a Gradle
       toolchain so the repo builds on any machine
-- [ ] **2.** Promote `:core` from Kotlin/JVM to Kotlin Multiplatform
-      (`commonMain`, `androidMain`, `jvmMain`)
-- [ ] **3.** Add `kotlinx.serialization` to `:core` with the JSON format pinned
+- [~] **2.** ~~Promote `:core` to Kotlin Multiplatform~~ — **deferred, on purpose.**
+      KMP buys sharing with a *Kotlin* target. The web surface is TypeScript and
+      the backend is JVM, so a plain Kotlin/JVM `:core` already serves both
+      consumers; Android depends on it directly. Revisit only if a Kotlin/JS or
+      Compose Multiplatform target appears. Doing it now is ceremony with no consumer
+- [x] **3.** Add `kotlinx.serialization` to `:core` with the JSON format pinned
       (`encodeDefaults = true`, `explicitNulls = true`)
-- [ ] **4.** Add `schemaVersion` constant and a migration hook that throws loudly
+- [x] **4.** Add `schemaVersion` constant and a migration hook that throws loudly
       on an unknown version
 - [ ] **5.** Create `frontend/web/` with a real build (bundler, TS, dev server)
 - [ ] **6.** Extract design tokens to one source consumed by both surfaces —
       colours, type scale, spacing, the 375×667 reference viewport
 - [ ] **7.** Pin Roboto as a self-hosted webfont so text metrics match Android
-- [ ] **8.** CI: `./gradlew test` on every push
+- [x] **8.** CI: `./gradlew test` on every push
 - [ ] **9.** CI: web typecheck + unit tests on every push
-- [ ] **10.** `docs/` index linking component-model, roadmap, and the prototypes
+- [x] **10.** `docs/` index linking component-model, roadmap, and the prototypes
 
 **Exit:** both builds green in CI on a fresh clone.
 **Effort:** 1–2 days.
@@ -96,29 +102,34 @@ costs more than doing it.
 
 ## Phase 1 · Core model
 
+> **Status:** complete. `:core:test` — 23 tests green.
+> Lives in `core/src/main/kotlin/com/ikk/core/contract/`.
+
 Pure Kotlin, no Android, no DOM. Lives in `core/src/commonMain`.
 
-- [ ] **11.** `RelRect { x, y, w, h }` as fractions, with `translate`, `resize`,
+- [x] **11.** `RelRect { x, y, w, h }` as fractions, with `translate`, `resize`,
       `contains`, `clampTo`
-- [ ] **12.** `Color` value type with hex parse/format, round-trip tested
-- [ ] **13.** `Stroke { color, width }`, alignment fixed as INSIDE
-- [ ] **14.** `TextPayload { value, size, align, color, weight, maxLines }`
-- [ ] **15.** `BaseUIComponent` — id, type, version, updatedAt, markDirty
-- [ ] **16.** `DesignNode` — geometry, z, visible, opacity, hitTest, bounds
-- [ ] **17.** Capability interfaces: `Fillable`, `Strokable`, `TextCarrier`,
-      `Resizable`
-- [ ] **18.** `RectNode`
-- [ ] **19.** `EllipseNode`
-- [ ] **20.** `TextNode`
-- [ ] **21.** `ImageNode` + `AssetRef`
-- [ ] **22.** `Contract` root: version, checkpoint, reference viewport,
+- [x] **12.** `Color` value type with hex parse/format, round-trip tested
+- [x] **13.** `Stroke { color, width }`, alignment fixed as INSIDE
+- [x] **14.** `TextPayload { value, size, align, color, weight, maxLines }`
+- [x] **15.** `BaseUIComponent` — id, type, version, updatedAt, markDirty
+- [x] **16.** `DesignNode` — geometry, z, visible, opacity, hitTest, bounds
+- [x] **17.** Capability **predicates** on `DesignNode` — `acceptsText`,
+      `acceptsFill`, `radiusEditable`. Marker interfaces would carry no
+      information: the envelope is uniform, so every node has every field.
+      What the editor needs is "should this control be shown"
+- [x] **18.** `RectNode`
+- [x] **19.** `EllipseNode`
+- [x] **20.** `TextNode`
+- [x] **21.** `ImageNode` + `AssetRef`
+- [x] **22.** `Contract` root: version, checkpoint, reference viewport,
       `Map<String, DesignNode>`
 
 **Tests, not optional:**
 
-- [ ] **23.** Round-trip property test per node type — `fromJson(toJson(x)) == x`
-- [ ] **24.** `markDirty()` bumps `version` and stamps `updatedAt` on every setter
-- [ ] **25.** `text = null` and `text = ""` are distinguishable after a round trip
+- [x] **23.** Round-trip property test per node type — `fromJson(toJson(x)) == x`
+- [x] **24.** `markDirty()` bumps `version` and stamps `updatedAt` on every setter
+- [x] **25.** `text = null` and `text = ""` are distinguishable after a round trip
 
 **Exit:** `:core:test` green; a hand-written contract JSON deserialises.
 **Effort:** 2–3 days.
