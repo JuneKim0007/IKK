@@ -18,7 +18,7 @@ RUN           := .run
 .PHONY: help up down frontend backend stop-frontend stop-backend status logs \
         test test-kotlin test-codegen test-web test-backend e2e generate check clean \
         docker-build docker-run android-sync android-install \
-        emulator emulator-kill emulator-reset demo
+        emulator emulator-kill emulator-reset demo demo-reset down-services
 
 ## ---------------------------------------------------------------- help
 
@@ -27,12 +27,18 @@ help:
 	@echo "  IKK"
 	@echo ""
 	@echo "  make up             backend + frontend, backgrounded"
-	@echo "  make down           stop both"
+	@echo "  make down           stop both, and the emulator"
 	@echo "  make status         what is running"
 	@echo "  make logs           tail both logs"
 	@echo ""
 	@echo "  make frontend       editor on :$(FRONTEND_PORT)"
 	@echo "  make backend        API on :$(BACKEND_PORT)"
+	@echo ""
+	@echo "  make demo           backend + frontend + cold emulator"
+	@echo "  make android-sync   regenerate -> install -> relaunch the app"
+	@echo "  make emulator       boot the $(AVD) AVD (idempotent)"
+	@echo "  make emulator-kill  stop it"
+	@echo "  make emulator-reset wipe user data and cold boot"
 	@echo ""
 	@echo "  make test           Kotlin + codegen + web + backend"
 	@echo "  make e2e            up, PUT a contract, generate, assert artifacts"
@@ -83,7 +89,11 @@ backend: $(RUN) stop-backend
 
 ## ---------------------------------------------------------------- stop
 
-down: stop-frontend stop-backend emulator-kill
+# `down` stops everything including the device. e2e uses down-services so a
+# test run cannot kill an emulator that is mid-demo.
+down-services: stop-frontend stop-backend
+
+down: down-services emulator-kill
 	@echo "stopped"
 
 # Wait until the port is actually free so the next start cannot race the old
@@ -141,7 +151,7 @@ test-backend:
 # This is the only target that proves the two halves agree at runtime.
 e2e: export IKK_DATABASE_URL := jdbc:h2:mem:ikk_e2e;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
 e2e: up
-	@trap '$(MAKE) --no-print-directory down >/dev/null' EXIT; \
+	@trap '$(MAKE) --no-print-directory down-services >/dev/null' EXIT; \
 	echo "→ e2e"; \
 	status=$$(curl -sS -o $(RUN)/e2e-put.json -w '%{http_code}' \
 		-X PUT http://127.0.0.1:$(BACKEND_PORT)/v1/projects/demo/contract \
@@ -167,6 +177,7 @@ check:
 AVD      ?= hack36
 SDK      := $(HOME)/Library/Android/sdk
 EMULATOR := $(SDK)/emulator/emulator
+ADB      := $(shell command -v adb 2>/dev/null || echo $(HOME)/Library/Android/sdk/platform-tools/adb)
 
 # Boot the AVD if nothing is attached. Idempotent: running it twice does not
 # start a second emulator, so `make demo` is safe to re-run mid-presentation.
@@ -224,18 +235,40 @@ emulator-reset: emulator-kill
 
 ## ---------------------------------------------------------------- demo
 
-# Everything the pitch needs, in the order it is presented.
-demo: $(RUN) backend frontend emulator
+SHOWCASE := docs/fixtures/valid/all_node_types.json
+
+# Put project $(PROJECT) back to the showcase contract, so every rehearsal
+# starts from the same screen. The editor loads the saved project in
+# preference to the fixture, so editing without this leaves the last run's
+# colours in place and the demo is no longer reproducible.
+#
+# Contract only: no device needed, and it is fast enough to run between takes.
+# Follow with `make android-sync` to push the same reset to the emulator.
+demo-reset:
+	@python3 tools/demo_reset.py http://127.0.0.1:$(BACKEND_PORT) $(PROJECT) $(SHOWCASE)
+	@echo "  RELOAD the editor tab - it reads the project once, at page load"
+	@echo "  next: make android-sync"
+
+# Everything the pitch needs, staged, in one command.
+#
+# Order matters. The contract is reset and pushed to the device BEFORE the
+# editor opens, because the editor reads the saved project once at page load
+# and then owns its copy. Reset underneath an open editor and the two
+# disagree until you reload -- and the editor's next flush overwrites the
+# reset. Frontend last is what keeps them agreeing.
+demo: $(RUN) backend emulator demo-reset android-sync frontend
 	@echo ""
-	@echo "  editor   $(EDITOR_URL)"
-	@echo "  then     make android-sync   (regenerate -> install -> relaunch)"
+	@echo "  editor    $(EDITOR_URL)"
+	@echo "  emulator  same contract, installed and running"
+	@echo ""
+	@echo "  after an edit:  make android-sync"
+	@echo "  between takes:  make demo-reset && make android-sync   (then RELOAD the tab)"
 	@echo ""
 
 ## ---------------------------------------------------------------- android
 
 PROJECT     ?= demo
 ANDROID_GEN := apps/android/app/src/main/kotlin/com/ikk/ui/generated/HomeLayout.generated.kt
-ADB         := $(shell command -v adb 2>/dev/null || echo $$HOME/Library/Android/sdk/platform-tools/adb)
 
 # Contract -> generated Compose -> APK on the device.
 #

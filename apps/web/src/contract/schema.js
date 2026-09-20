@@ -97,7 +97,7 @@ const DEFAULTS = {
   triangle: { fill: '#E8E3F0', stroke: null, radius: 0, w: 104, h: 92 },
   line: { fill: null, stroke: { color: '#1B1D1C', width: 2 }, radius: 0, w: 140, h: 80 },
   text:    { fill: null, stroke: null, radius: 0, w: 180, h: 28 },
-  image:   { fill: '#DFDAE6', stroke: null, radius: 8, w: 180, h: 101 },
+  image:   { fill: null, stroke: null, radius: 12, w: 200, h: 112 },
 };
 
 export const DRAWABLE_TYPES = ['rect', 'ellipse', 'triangle', 'line', 'text', 'image'];

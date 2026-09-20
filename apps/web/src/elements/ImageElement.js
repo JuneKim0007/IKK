@@ -53,6 +53,9 @@ export class ImageElement extends NodeElement {
       ph.className = 'placeholder';
       this.el.appendChild(ph);
     }
-    ph.textContent = node.alt || 'image';
+    // Alt text is authored in the inspector and emitted as alt=; on the canvas
+    // it would only be a caption on a box.
+    ph.textContent = '';
+    ph.setAttribute('aria-label', node.alt || 'empty image frame');
   }
 }
