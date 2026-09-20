@@ -109,7 +109,7 @@ Every component, whatever its type, has this shape:
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | `id` | string | ✔ | — | UUID. Stable, never reused, never shown |
-| `type` | enum | ✔ | — | `rect` · `ellipse` · `text` · `image` |
+| `type` | enum | ✔ | — | `rect` · `ellipse` · `triangle` · `text` · `image` |
 | `name` | string | ✔ | — | Designer-facing. Unique within scope. §4.1 |
 | `z` | int | ✔ | — | Paint order, ascending. Ties broken by `id` |
 | `visible` | bool | ✔ | `true` | Hidden nodes stay in the contract and are **not** emitted |
@@ -369,15 +369,31 @@ than discovering it in a demo.
 
 ## 10 · Per-type field applicability
 
-| Field | rect | ellipse | text | image |
-|---|---|---|---|---|
-| `rect` | ✔ | ✔ | ✔ | ✔ |
-| `fill` | ✔ | ✔ | null | placeholder colour |
-| `stroke` | ✔ | ✔ | null | ✔ |
-| `radius` | number | `"50%"` | `0` | number |
-| `text` | optional | optional | **required** | null |
-| `source` | — | — | — | nullable — `null` is an unfilled frame |
-| `contentScale` | — | — | — | **required** |
+| Field | rect | ellipse | triangle | text | image |
+|---|---|---|---|---|---|
+| `rect` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `fill` | ✔ | ✔ | ✔ | null | placeholder colour |
+| `stroke` | ✔ | ✔ | see below | null | ✔ |
+| `radius` | number | `"50%"` | `0` | `0` | number |
+| `text` | optional | optional | optional | **required** | null |
+| `source` | — | — | — | — | nullable — `null` is an unfilled frame |
+| `contentScale` | — | — | — | — | **required** |
+
+### Triangle
+
+An isosceles triangle filling the node's box: apex at the top centre, base on
+the bottom edge. It carries no radius.
+
+| Target | Mapping |
+|---|---|
+| CSS | `clip-path: polygon(50% 0%, 100% 100%, 0% 100%)` |
+| Compose | a `GenericShape` with the same three points |
+
+**Stroke on a triangle is not the same primitive.** CSS `clip-path` clips the
+border away, so a bordered triangle renders with no visible outline, while
+Compose's `.border(shape)` follows the path. Rather than let the two surfaces
+disagree, v1 declares `stroke` **must be `null`** on a triangle (rule V16).
+Outlined triangles need a drawn path on both sides and are deferred.
 
 A `type: "image"` node adds:
 
@@ -439,7 +455,7 @@ A contract is valid when all hold. Reject, do not repair.
 | # | Rule |
 |---|---|
 | V1 | `schemaVersion == 1` |
-| V2 | Every map key matches `^(rect\|ellipse\|text\|image)_[A-Za-z0-9]+$` |
+| V2 | Every map key matches `^(rect\|ellipse\|triangle\|text\|image)_[A-Za-z0-9]+$` |
 | V3 | Every `id` is unique within the document |
 | V4 | `opacity` ∈ [0.0, 1.0] |
 | V5 | `rect.w > 0` and `rect.h > 0` |
@@ -453,6 +469,7 @@ A contract is valid when all hold. Reject, do not repair.
 | V13 | `name` is non-empty after trimming |
 | V14 | `name` is unique within its parent scope — the screen in v1 |
 | V15 | `key` equals `{type}_{slug(name)}` for its node |
+| V16 | `type == "triangle"` ⟹ `stroke` is `null` and `radius` is `0` |
 
 V11 is the one people want to relax. Do not. A field one implementation writes
 and another silently drops is a divergence that only shows up at a demo.

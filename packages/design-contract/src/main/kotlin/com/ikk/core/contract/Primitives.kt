@@ -1,6 +1,7 @@
 package com.ikk.core.contract
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -175,3 +176,13 @@ enum class ContentScale {
 
 @Serializable
 data class AssetRef(val ref: String, val mime: String)
+
+/** Which diagonal of its bounding box a line runs along. */
+@Serializable
+enum class LineOrientation {
+    @SerialName("topLeftToBottomRight") TOP_LEFT_TO_BOTTOM_RIGHT,
+    @SerialName("bottomLeftToTopRight") BOTTOM_LEFT_TO_TOP_RIGHT,
+}
+
+@Serializable
+data class LineSpec(val orientation: LineOrientation = LineOrientation.TOP_LEFT_TO_BOTTOM_RIGHT)

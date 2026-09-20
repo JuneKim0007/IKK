@@ -10,18 +10,35 @@ Owner: the JVM backend and code generation. Frontend plan lives in
 
 ## B0 · Language
 
-The backend is **Java**. `apps/backend` currently holds a Python/FastAPI
-implementation that exists only as the reference the Java port is translating.
+The backend is **Kotlin**. `apps/backend` currently holds a Python/FastAPI
+implementation that exists only as the reference the Kotlin port translates.
 
-- [ ] **B0.1** Java service skeleton with the routes in `docs/api.md`
-- [ ] **B0.2** Contract model mirroring `docs/json_contract.md`, unknown fields
-      rejected (V11)
-- [ ] **B0.3** Validation rules V1–V15
-- [ ] **B0.4** Runs `docs/fixtures/` — the same corpus Kotlin and the Node
-      generator run. This is the drift detector; it has already caught eight
-      divergences
-- [ ] **B0.5** **Delete `apps/backend` (Python) once B0.4 passes.** Not archived,
-      not renamed to `legacy/` — deleted
+### This removes an implementation, it does not add one
+
+Kotlin on the backend can depend on `:packages:design-contract` **directly** —
+the same module Android already uses. So the contract model drops from three
+implementations to two:
+
+| | Before (Python backend) | Now (Kotlin backend) |
+|---|---|---|
+| Kotlin model | Android | Android **and** backend |
+| Python model | backend | — deleted |
+| JS model | web editor, codegen | web editor, codegen |
+
+Two implementations that must agree instead of three, and the backend's half is
+already written and tested. `docs/fixtures/` stays: it is what keeps the Kotlin
+and JS halves honest, and it has caught eight divergences so far.
+
+- [ ] **B0.1** Kotlin service skeleton (Ktor or Spring Boot — pick one and say
+      why in the module README) serving the routes in `docs/api.md`
+- [ ] **B0.2** Depend on `:packages:design-contract`. Do **not** redeclare the
+      model; if it is wrong, fix it there and in `docs/json_contract.md`
+- [ ] **B0.3** Reuse `ContractValidator` for V1–V15 rather than porting it
+- [ ] **B0.4** Run `docs/fixtures/` in the service's own test suite
+- [ ] **B0.5** `POST /v1/projects/{id}/generate` shells out to
+      `packages/codegen`. The emitter stays one implementation
+- [ ] **B0.6** **Delete `apps/backend` (Python) once B0.4 passes.** Not
+      archived, not renamed to `legacy/` — deleted
 
 ---
 

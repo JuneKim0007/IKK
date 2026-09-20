@@ -354,7 +354,7 @@ yet, so none are declared.
 | `gradle.properties` | JDK pin, JVM args, AndroidX flag |
 | `app/build.gradle.kts` | `compileSdk 37`, `minSdk 26`, `targetSdk 36`, Compose on |
 | `data/build.gradle.kts` | Android library, `compileSdk 37`, `minSdk 26` |
-| `core/build.gradle.kts` | Kotlin/JVM targeting Java 17 bytecode |
+| `core/build.gradle.kts` | Kotlin/JVM targeting Kotlin 17 bytecode |
 
 Kotlin sources live in `src/<set>/kotlin`, not the Android default
 `src/<set>/java`. Each Android module's `sourceSets` block sets that.
@@ -428,6 +428,6 @@ adb shell am start -n com.ikk/.MainActivity
 
 ### Known issues
 
-- `compileSdk`, `minSdk` and the Java 17 settings are duplicated across `app`
+- `compileSdk`, `minSdk` and the Kotlin 17 settings are duplicated across `app`
   and `data`. Move to a convention plugin under `build-logic/` if a third
   Android module appears.

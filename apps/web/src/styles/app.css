@@ -27,9 +27,13 @@ button { cursor: pointer; }
 .tools { display: flex; gap: var(--space-1); }
 .tool {
   width: 34px; height: 30px; border-radius: var(--radius-md);
-  border: 1px solid transparent; background: none;
+  border: 1px solid transparent; background: none; color: var(--ink);
   display: inline-flex; align-items: center; justify-content: center; gap: 2px;
 }
+.tool svg { display: block; }
+.tool .glyph { display: inline-flex; }
+/* The grouped shape button carries a caret, so it needs the extra width. */
+#shapeBtn { width: 42px; }
 .tool:hover { background: var(--chrome-2); border-color: var(--line); }
 .tool[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .toolgroup { position: relative; }
@@ -45,7 +49,9 @@ button { cursor: pointer; }
   border: 1px solid transparent; background: none; border-radius: var(--radius-sm);
   padding: 6px 8px; text-align: left;
 }
+.flyout button svg { flex: 0 0 auto; color: var(--muted); }
 .flyout button:hover { background: var(--chrome-2); }
+.flyout button[aria-checked="true"] svg { color: var(--accent); }
 .flyout button[aria-checked="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .flyout kbd { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--muted);
               border: 1px solid var(--line); border-radius: 3px; padding: 1px 4px; }
@@ -96,7 +102,18 @@ button { cursor: pointer; }
 .node.is-selected { outline: 1.5px solid var(--accent); }
 .node-text { width: 100%; padding: 0 6px; white-space: pre-wrap; word-break: break-word;
              display: flex; align-items: center; }
+.node-triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
 .node-image > img { width: 100%; height: 100%; display: block; }
+
+/* Live preview while drawing. Pointer-events off so it never steals the drag. */
+.draw-ghost {
+  position: absolute; pointer-events: none; z-index: 8;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.draw-ghost.is-ellipse { border-radius: 50%; }
+.draw-ghost.is-triangle { clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+.draw-ghost.is-line { background: none; }
 .node-image > .placeholder { width: 100%; text-align: center; font-size: 10px;
                              color: var(--muted); opacity: .8; }
 
@@ -140,6 +157,13 @@ button { cursor: pointer; }
 .swatches { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-bottom: var(--space-2); }
 .swatch { width: 22px; height: 22px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
 .swatch:hover { transform: scale(1.12); }
+.swatch[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* "None" reads as a slashed chip so it is not mistaken for white. */
+.swatch-none {
+  background: linear-gradient(135deg, transparent 44%, var(--danger) 44%,
+              var(--danger) 56%, transparent 56%), var(--chrome-2);
+}
+.sub { margin: 0 0 var(--space-1); font-size: 10.5px; color: var(--muted); }
 .segmented { display: flex; gap: 3px; }
 .segmented button { flex: 1; border: 1px solid var(--line); background: var(--chrome-2);
                     border-radius: var(--radius-sm); padding: 4px 0; }

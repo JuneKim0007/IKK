@@ -12,7 +12,7 @@ data class Violation(val rule: String, val where: String, val message: String) {
 
 object ContractValidator {
 
-    private val KEY_PATTERN = Regex("^(rect|ellipse|text|image)_[A-Za-z0-9]+$")
+    private val KEY_PATTERN = Regex("^(rect|ellipse|triangle|line|text|image)_[A-Za-z0-9]+$")
 
     fun validate(contract: Contract): ValidationResult {
         val v = mutableListOf<Violation>()
@@ -53,6 +53,12 @@ object ContractValidator {
             }
             if (node is ImageNode && node.source != null && node.source.ref.isBlank()) {
                 v += Violation("V8", key, "an image source must have a non-blank ref")
+            }
+            if (node is TriangleNode && (node.stroke != null || node.radius != Radius.ZERO)) {
+                v += Violation("V16", key, "a triangle carries no stroke or radius")
+            }
+            if (node is LineNode && node.fill != null) {
+                v += Violation("V17", key, "a line has no fill")
             }
             if (node is EllipseNode && node.radius !is Radius.Full) {
                 v += Violation("V10", key, "an ellipse must have radius \"50%\"")

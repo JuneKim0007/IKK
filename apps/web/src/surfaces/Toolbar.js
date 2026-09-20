@@ -1,8 +1,11 @@
 import { BaseElement } from '../core/BaseElement.js';
+import { icon } from '../ui/icons.js';
 
 const SHAPES = [
-  { type: 'rect', label: 'Rectangle', key: 'R' },
-  { type: 'ellipse', label: 'Ellipse', key: 'O' },
+  { type: 'rect', label: 'Rectangle', key: 'R', icon: 'rect' },
+  { type: 'ellipse', label: 'Ellipse', key: 'O', icon: 'ellipse' },
+  { type: 'triangle', label: 'Triangle', key: 'Y', icon: 'triangle' },
+  { type: 'line', label: 'Line', key: 'L', icon: 'line' },
 ];
 
 /** Tools, plus the grouped shape tool that remembers the last shape used. */
@@ -24,13 +27,14 @@ export class Toolbar extends BaseElement {
     bar.innerHTML = `
       <span class="logo">IKK</span>
       <div class="tools">
-        <button class="tool" data-tool="move" aria-pressed="true" title="Move (V)">▸</button>
+        <button class="tool" data-tool="move" aria-pressed="true" title="Move (V)" aria-label="Move">${icon('move')}</button>
         <span class="toolgroup">
-          <button class="tool" id="shapeBtn" aria-haspopup="menu" aria-expanded="false" title="Shape (S)">▭<i class="caret"></i></button>
+          <button class="tool" id="shapeBtn" aria-haspopup="menu" aria-expanded="false"
+                  title="Shape (S)" aria-label="Shape"><span class="glyph">${icon('shape')}</span><i class="caret"></i></button>
           <div class="flyout" id="shapeFly" role="menu" hidden></div>
         </span>
-        <button class="tool" data-tool="text" title="Text (T)">T</button>
-        <button class="tool" data-tool="image" title="Image (I)">▣</button>
+        <button class="tool" data-tool="text" title="Text (T)" aria-label="Text">${icon('text')}</button>
+        <button class="tool" data-tool="image" title="Media (I)" aria-label="Media">${icon('media')}</button>
       </div>
       <span class="spacer"></span>
       <span class="sync" id="syncStatus" title="sync status">offline</span>
@@ -73,7 +77,7 @@ export class Toolbar extends BaseElement {
       const b = document.createElement('button');
       b.setAttribute('role', 'menuitemradio');
       b.setAttribute('aria-checked', String(this.lastShape === s.type));
-      b.innerHTML = `<span>${s.label}</span><kbd>${s.key}</kbd>`;
+      b.innerHTML = `${icon(s.icon, { size: 16 })}<span>${s.label}</span><kbd>${s.key}</kbd>`;
       b.addEventListener('click', () => { this.setTool(s.type, bar); this._closeFlyout(bar); });
       fly.appendChild(b);
     }
@@ -88,12 +92,16 @@ export class Toolbar extends BaseElement {
 
   setTool(tool, bar = this.el) {
     this.tool = tool;
-    const isShape = tool === 'rect' || tool === 'ellipse';
+    const isShape = SHAPES.some((s) => s.type === tool);
     if (isShape) this.lastShape = tool;
     bar.querySelectorAll('.tool[data-tool]').forEach((b) =>
       b.setAttribute('aria-pressed', String(b.dataset.tool === tool)));
     bar.querySelector('#shapeBtn').setAttribute('aria-pressed', String(isShape));
-    bar.querySelector('#shapeBtn').firstChild.textContent = tool === 'ellipse' ? '◯' : '▭';
+    // The button keeps the generic shape mark rather than morphing into the
+    // last shape used: a button whose icon changes is a button you have to
+    // read before pressing. The flyout shows which shape is active.
+    const glyph = bar.querySelector('#shapeBtn .glyph');
+    if (glyph && !glyph.firstChild) glyph.innerHTML = icon('shape');
     this.onTool?.(tool);
   }
 

@@ -1,10 +1,14 @@
-> ## SUPERSEDED — Python, being ported to Java
+> ## SUPERSEDED — Python, being ported to Kotlin
 >
-> The backend is Java. This FastAPI implementation exists for exactly one
-> reason: it is the working reference the Java port is translating from.
+> The backend is Kotlin. This FastAPI implementation exists for exactly one
+> reason: it is the working reference the Kotlin port is translating from.
 >
-> **It is deleted the moment the Java service passes `docs/fixtures/`** — see
-> `docs/roadmap-backend.md` B0.5. Not archived, not renamed to `legacy/`.
+> The Kotlin service depends on `:packages:design-contract` directly, so the
+> contract model it needs is already written and tested — this Python mirror
+> disappears rather than being replaced.
+>
+> **It is deleted the moment the Kotlin service passes `docs/fixtures/`** — see
+> `docs/roadmap-backend.md` B0.6. Not archived, not renamed to `legacy/`.
 > Deleted. Do not add features here.
 
 # backend

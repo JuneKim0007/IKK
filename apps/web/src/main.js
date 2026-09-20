@@ -11,6 +11,7 @@ import { LayersPanel } from './surfaces/LayersPanel.js';
 import { Inspector } from './surfaces/Inspector.js';
 import { StatusBar } from './surfaces/StatusBar.js';
 import { createNode, emptyContract, REFERENCE } from './contract/schema.js';
+import { DrawController } from './core/DrawController.js';
 
 const params = new URLSearchParams(location.search);
 const BACKEND = params.get('api') ?? 'http://127.0.0.1:8000';
@@ -65,17 +66,19 @@ async function boot() {
   inspector.mount(middle);
   status.mount(root);
 
-  // Draw-by-click for the shape, text and image tools.
-  canvas.frame.addEventListener('pointerdown', (e) => {
-    const tool = canvas.frame.dataset.tool;
-    if (!tool || tool === 'move' || e.target.closest('.node')) return;
-    const box = canvas.frame.getBoundingClientRect();
-    const x = ((e.clientX - box.left) / box.width) * REFERENCE.w;
-    const y = ((e.clientY - box.top) / box.height) * REFERENCE.h;
-    const z = Math.max(0, ...store.nodes().map((n) => n.z)) + 1;
-    store.add(createNode(tool, store.nextName(tool), x, y, z));
-    toolbar.setTool('move');
-  }, true);
+  // Drag to draw. One controller for every drawable type, so rect, triangle,
+  // text and image cannot drift apart in how they feel.
+  new DrawController(canvas.frame, {
+    getTool: () => canvas.frame.dataset.tool,
+    onCreate: (type, drawnRect) => {
+      const z = Math.max(0, ...store.nodes().map((n) => n.z)) + 1;
+      // Without a drag, place at the press point with the type's default size.
+      const x = drawnRect ? 0 : (REFERENCE.w / 2);
+      const y = drawnRect ? 0 : (REFERENCE.h / 3);
+      store.add(createNode(type, store.nextName(type), x, y, z, drawnRect));
+    },
+    onDone: () => toolbar.setTool('move'),
+  });
 
   addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea')) return;

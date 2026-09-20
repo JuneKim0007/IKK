@@ -60,7 +60,7 @@ $(RUN):
 # docs/fixtures/ from the same origin. Native ES modules, no bundler, no install.
 frontend: $(RUN) stop-frontend
 	@echo "→ frontend on :$(FRONTEND_PORT)"
-	@python3 -m http.server $(FRONTEND_PORT) --bind 127.0.0.1 \
+	@python3 tools/devserver.py $(FRONTEND_PORT) 127.0.0.1 \
 		> $(RUN)/frontend.log 2>&1 & echo $$! > $(RUN)/frontend.pid
 	@for i in $$(seq 1 40); do \
 		curl -sf -o /dev/null http://127.0.0.1:$(FRONTEND_PORT)/$(EDITOR) && break || sleep 0.25; \

@@ -25,7 +25,7 @@ def slug(raw: str) -> str:
     return parts[0].lower() + "".join(p.lower().capitalize() for p in parts[1:])
 
 _COLOR = re.compile(r"^#[0-9A-F]{6}([0-9A-F]{2})?$")
-_KEY = re.compile(r"^(rect|ellipse|text|image)_[A-Za-z0-9]+$")
+_KEY = re.compile(r"^(rect|ellipse|triangle|line|text|image)_[A-Za-z0-9]+$")
 
 
 class Strict(BaseModel):
@@ -155,6 +155,39 @@ class EllipseNode(NodeBase):
         return v
 
 
+class TriangleNode(NodeBase):
+    type: Literal["triangle"] = "triangle"
+    radius_editable: bool = False
+
+    @field_validator("stroke")
+    @classmethod
+    def _no_stroke(cls, v: object) -> object:
+        # V16 — clip-path clips a border away; Compose's border follows the path.
+        if v is not None:
+            raise ValueError("a triangle carries no stroke")
+        return v
+
+
+class LineSpec(Strict):
+    orientation: Literal["topLeftToBottomRight", "bottomLeftToTopRight"] = "topLeftToBottomRight"
+
+
+class LineNode(NodeBase):
+    type: Literal["line"] = "line"
+    stroke: Stroke
+    line: LineSpec = LineSpec()
+    accepts_text: bool = False
+    accepts_fill: bool = False
+    radius_editable: bool = False
+
+    @field_validator("fill")
+    @classmethod
+    def _no_fill(cls, v: object) -> object:
+        if v is not None:
+            raise ValueError("a line has no fill")
+        return v
+
+
 class TextNode(NodeBase):
     type: Literal["text"] = "text"
     text: TextPayload
@@ -186,7 +219,7 @@ class ImageNode(NodeBase):
 
 
 DesignNode = Annotated[
-    RectNode | EllipseNode | TextNode | ImageNode,
+    RectNode | EllipseNode | TriangleNode | LineNode | TextNode | ImageNode,
     Field(discriminator="type"),
 ]
 

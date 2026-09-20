@@ -19,7 +19,7 @@ const DEFAULT_PATHS = {
 const REL_TEMPLATE_PATH = path.join(CODEGEN_DIR, "templates", "rel.kt.txt");
 const REL_KT_LINES = readFileSync(REL_TEMPLATE_PATH, "utf8").replace(/\n$/, "").split("\n");
 
-const NODE_TYPES = new Set(["rect", "text", "ellipse", "image"]);
+const NODE_TYPES = new Set(["rect", "text", "ellipse", "triangle", "line", "image"]);
 // docs/json_contract.md §9 — three values, not five. start/end are
 // writing-direction aware and map to TextAlign.Start/End and CSS logical
 // alignment; left/right are physical and break RTL. Accepting synonyms would
@@ -119,7 +119,10 @@ function normalizeText(value, location) {
       ? text.value
       : fail(`${location}.value`, "expected a string"),
     size,
-    lineHeight: text.lineHeight === undefined
+    // docs/json_contract.md §9 — null is legal and means size x 1.3. The
+    // generator resolves it; "normal" is never emitted because CSS resolves
+    // that against the font and Compose does not.
+    lineHeight: text.lineHeight === undefined || text.lineHeight === null
       ? round(size * 1.3, 3)
       : positiveNumberAt(text.lineHeight, `${location}.lineHeight`),
     weight: normalizeWeight(text.weight, size, `${location}.weight`),
@@ -198,6 +201,11 @@ function normalizeNode(key, value, inputOrder, seenIds, seenClasses) {
     fill: colorAt(node.fill, `${location}.fill`, { allowNone: true }),
     stroke,
     radius: normalizeRadius(node.radius, type, `${location}.radius`),
+    // A line is its bounding box plus which diagonal it runs along.
+    line: type === "line"
+      ? { orientation: node.line?.orientation === "bottomLeftToTopRight"
+            ? "bottomLeftToTopRight" : "topLeftToBottomRight" }
+      : null,
     opacity,
     text: normalizeText(node.text, `${location}.text`),
     contentScale,
@@ -274,6 +282,22 @@ function cssRadius(node) {
   return `${numberText(node.radius)}px`;
 }
 
+// docs/json_contract.md — a triangle is a clip-path on the same box every other
+// node uses, so it inherits geometry, fill and opacity without a second path.
+const CSS_TRIANGLE_CLIP = "polygon(50% 0%, 100% 100%, 0% 100%)";
+
+/**
+ * A line is its bounding box plus which diagonal it runs along. Emitting it as
+ * a rotated, stroked edge keeps the same box model as every other node, so
+ * selection, nudging and resize need no special case.
+ */
+function cssLineBackground(node) {
+  const dir = node.line?.orientation === "bottomLeftToTopRight" ? "to top right" : "to bottom right";
+  const w = node.stroke ? numberText(node.stroke.width) : "1";
+  const color = node.stroke ? node.stroke.color : "#000000";
+  return `linear-gradient(${dir}, transparent calc(50% - ${w}px), ${color} calc(50% - ${w}px), ${color} calc(50% + ${w}px), transparent calc(50% + ${w}px))`;
+}
+
 export function generateCss(contract) {
   const lines = [
     `/* GENERATED FROM contract ${contract.checkpoint} — DO NOT EDIT. */`,
@@ -306,9 +330,12 @@ export function generateCss(contract) {
     lines.push(`  z-index: ${node.z};`);
     if (!node.visible) lines.push("  display: none;");
     if (node.fill) lines.push(`  background: ${node.fill};`);
-    if (node.stroke && node.stroke.width > 0) {
+    // A line's stroke is the line itself, not a border around its box.
+    if (node.stroke && node.stroke.width > 0 && node.type !== "line") {
       lines.push(`  border: ${numberText(node.stroke.width)}px solid ${node.stroke.color};`);
     }
+    if (node.type === "triangle") lines.push(`  clip-path: ${CSS_TRIANGLE_CLIP};`);
+    if (node.type === "line") lines.push(`  background: ${cssLineBackground(node)};`);
     lines.push(`  border-radius: ${cssRadius(node)};`);
     if (node.opacity !== 1) lines.push(`  opacity: ${numberText(node.opacity)};`);
     if (node.type === "image") {
@@ -362,8 +389,32 @@ function kotlinColor(color) {
   return `Color(0xFF${color.slice(1)})`;
 }
 
+/**
+ * Compose draws the line with a Canvas stroke along the box diagonal — the
+ * same two points the web emits as a gradient band, so the two agree.
+ */
+function kotlinLineBody(node, indent) {
+  const pad = " ".repeat(indent);
+  const flip = node.line?.orientation === "bottomLeftToTopRight";
+  const start = flip ? "Offset(0f, size.height)" : "Offset(0f, 0f)";
+  const end = flip ? "Offset(size.width, 0f)" : "Offset(size.width, size.height)";
+  const width = node.stroke ? numberText(node.stroke.width) : "1";
+  const color = node.stroke ? node.stroke.color : "#000000";
+  return [
+    `${pad}Canvas(modifier = ${"$"}{MODIFIER}) {`,
+    `${pad}    drawLine(`,
+    `${pad}        color = Color(0xFF${color.slice(1)}),`,
+    `${pad}        start = ${start},`,
+    `${pad}        end = ${end},`,
+    `${pad}        strokeWidth = ${width}.dp.toPx(),`,
+    `${pad}    )`,
+    `${pad}}`,
+  ];
+}
+
 function kotlinShape(node) {
   if (node.type === "ellipse" || node.radius === "50%") return "IkkOvalShape";
+  if (node.type === "triangle") return "IkkTriangleShape";
   return `RoundedCornerShape(${kotlinUnit(node.radius, "dp")})`;
 }
 
@@ -416,6 +467,8 @@ function indent(lines, spaces) {
 export function generateKotlin(contract) {
   const visibleNodes = contract.components.filter((node) => node.visible);
   const hasEllipse = visibleNodes.some((node) => node.type === "ellipse" || node.radius === "50%");
+  const hasTriangle = visibleNodes.some((node) => node.type === "triangle");
+  const hasLine = visibleNodes.some((node) => node.type === "line");
   const hasImage = visibleNodes.some((node) => node.type === "image");
   const functionName = `${kotlinName(contract.screen)}LayoutGenerated`;
   const lines = [
@@ -430,7 +483,10 @@ export function generateKotlin(contract) {
     "import androidx.compose.foundation.layout.offset",
     "import androidx.compose.foundation.layout.padding",
     "import androidx.compose.foundation.layout.size",
-    ...(hasEllipse ? ["import androidx.compose.foundation.shape.GenericShape"] : []),
+    ...(hasEllipse || hasTriangle ? ["import androidx.compose.foundation.shape.GenericShape"] : []),
+    ...(hasLine ? ["import androidx.compose.foundation.Canvas",
+                   "import androidx.compose.ui.geometry.Offset",
+                   "import androidx.compose.ui.graphics.drawscope.Stroke"] : []),
     "import androidx.compose.foundation.shape.RoundedCornerShape",
     "import androidx.compose.material3.Text",
     "import androidx.compose.runtime.Composable",
@@ -454,6 +510,20 @@ export function generateKotlin(contract) {
     lines.push(
       "private val IkkOvalShape = GenericShape { size, _ ->",
       "    addOval(Rect(0f, 0f, size.width, size.height))",
+      "}",
+      "",
+    );
+  }
+
+  if (hasTriangle) {
+    lines.push(
+      "// Apex at top centre, base on the bottom edge — the same three points",
+      "// the web emits as clip-path: polygon(50% 0%, 100% 100%, 0% 100%).",
+      "private val IkkTriangleShape = GenericShape { size, _ ->",
+      "    moveTo(size.width / 2f, 0f)",
+      "    lineTo(size.width, size.height)",
+      "    lineTo(0f, size.height)",
+      "    close()",
       "}",
       "",
     );

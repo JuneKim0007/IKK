@@ -1,5 +1,5 @@
 import { BaseElement } from '../core/BaseElement.js';
-import { PALETTE, textPayload, normalizeColor } from '../contract/schema.js';
+import { PALETTE, textPayload, normalizeColor, capabilities } from '../contract/schema.js';
 
 /** Properties for the selection. Controls only appear when the node has them. */
 export class Inspector extends BaseElement {
@@ -22,9 +22,11 @@ export class Inspector extends BaseElement {
       return;
     }
 
+    const cap = capabilities(node.type);
     body.appendChild(this._geometry(store, node));
-    if (node.type !== 'text') body.appendChild(this._appearance(store, node));
-    body.appendChild(this._text(store, node));
+    if (cap.fill || cap.stroke || cap.radius) body.appendChild(this._appearance(store, node, cap));
+    else body.appendChild(this._opacityOnly(store, node));
+    if (cap.text) body.appendChild(this._text(store, node));
   }
 
   _group(title) {
@@ -62,25 +64,77 @@ export class Inspector extends BaseElement {
     return g;
   }
 
-  _appearance(store, node) {
-    const g = this._group('Appearance');
-
+  _swatchRow(label, current, onPick, { allowNone = false } = {}) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `<p class="sub">${label}</p>`;
     const sws = document.createElement('div');
     sws.className = 'swatches';
+
+    if (allowNone) {
+      const none = document.createElement('button');
+      none.className = 'swatch swatch-none';
+      none.title = 'None';
+      none.setAttribute('aria-label', `${label}: none`);
+      none.setAttribute('aria-pressed', String(current == null));
+      none.addEventListener('click', () => onPick(null));
+      sws.appendChild(none);
+    }
     for (const hex of PALETTE) {
       const b = document.createElement('button');
       b.className = 'swatch';
       b.style.background = hex;
-      b.setAttribute('aria-label', `Fill ${hex}`);
-      b.addEventListener('click', () => store.update(node.id, (n) => { n.fill = normalizeColor(hex); }));
+      b.title = hex;
+      b.setAttribute('aria-label', `${label} ${hex}`);
+      b.setAttribute('aria-pressed', String(current === hex));
+      b.addEventListener('click', () => onPick(normalizeColor(hex)));
       sws.appendChild(b);
     }
-    g.appendChild(sws);
+    wrap.appendChild(sws);
+    return wrap;
+  }
 
-    if (node.radius !== '50%') {
+  _appearance(store, node, cap) {
+    const g = this._group('Appearance');
+
+    if (cap.fill) {
+      // "None" is a real choice, not an absence: an outlined shape is a shape
+      // with no fill, and json_contract.md §6 makes null distinct from a
+      // transparent colour.
+      g.appendChild(this._swatchRow('Fill', node.fill,
+        (hex) => store.update(node.id, (n) => { n.fill = hex; }), { allowNone: true }));
+    }
+
+    if (cap.stroke) {
+      g.appendChild(this._swatchRow('Stroke', node.stroke?.color ?? null, (hex) =>
+        store.update(node.id, (n) => {
+          if (hex == null) {
+            // A line without a stroke is invisible, so its stroke is required.
+            n.stroke = cap.strokeRequired ? { ...(n.stroke ?? { width: 2 }), color: '#1B1D1C' } : null;
+          } else {
+            n.stroke = { color: hex, width: n.stroke?.width ?? 2 };
+          }
+        }), { allowNone: !cap.strokeRequired }));
+
+      g.appendChild(this._number('Thickness', node.stroke?.width ?? 0, (v) =>
+        store.update(node.id, (n) => {
+          const width = Math.max(cap.strokeRequired ? 0.5 : 0, v);
+          n.stroke = width === 0 ? null
+            : { color: n.stroke?.color ?? '#1B1D1C', width };
+        })));
+    }
+
+    if (cap.radius) {
       g.appendChild(this._number('Radius', node.radius,
         (v) => store.update(node.id, (n) => { n.radius = Math.max(0, v); })));
     }
+
+    g.appendChild(this._number('Opacity', node.opacity,
+      (v) => store.update(node.id, (n) => { n.opacity = Math.min(1, Math.max(0, v)); })));
+    return g;
+  }
+
+  _opacityOnly(store, node) {
+    const g = this._group('Appearance');
     g.appendChild(this._number('Opacity', node.opacity,
       (v) => store.update(node.id, (n) => { n.opacity = Math.min(1, Math.max(0, v)); })));
     return g;

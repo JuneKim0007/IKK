@@ -31,6 +31,10 @@ def validate_contract(contract: Contract) -> list[dict]:
             bad("V6", key, f"radius {node.radius} is negative")
         if node.type == "text" and node.text is None:
             bad("V7", key, "a text node must carry text")
+        if node.type == "triangle" and (node.stroke is not None or node.radius != 0):
+            bad("V16", key, "a triangle carries no stroke or radius")
+        if node.type == "line" and node.fill is not None:
+            bad("V17", key, "a line has no fill")
         if node.type == "ellipse" and node.radius != "50%":
             bad("V10", key, 'an ellipse must have radius "50%"')
         if node.z in seen_z:
