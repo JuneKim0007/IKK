@@ -15,13 +15,13 @@ requirements.
 | | **DesignNode** | **EditorControl** |
 |---|---|---|
 | What it is | What the user draws | The tool's own UI |
-| Examples | Rectangle, Text, Image | Tool button, Layers row, Import |
+| Examples | Rectangle, Text, Image | Tool button, Layers row, Generate |
 | In `contract.json`? | **Yes** | **Never** |
 | Synced to backend? | Yes | No |
 | Rendered by | Both surfaces, identically | Each platform, idiomatically |
 | Count | Unbounded, user-created | Fixed, developer-created |
 
-`[Import]` is the clarifying case. It is a button the user presses, but it is
+`[Generate]` is the clarifying case. It is a button the user presses, but it is
 not a button the user *drew*. It must never appear in the contract, never sync,
 and never be rendered by the generated output. It is an `EditorControl`.
 
@@ -90,9 +90,7 @@ BaseUIComponent
     │   ├── resize(dir, dx, dy)
     │   └── bounds()           : RelRect
     │
-    ├── emit
-    │   ├── toCompose()  : String
-    │   └── toCss()      : String
+    │   (no emit methods — see the note below)
     │
     ├─── ShapeNode  (abstract)  :: Fillable, Strokable, TextCarrier
     │    ├── fill     : Color | None
@@ -169,8 +167,8 @@ BaseUIComponent
     │    │
     │    ├── DeleteAction      undoable, confirm
     │    ├── UndoAction
-    │    ├── GenerateAction    emits a checkpoint
-    │    └── ImportAction      ← not a DesignNode. See §7
+    │    └── GenerateAction    cuts a checkpoint, runs codegen
+    │                          ← not a DesignNode. See §7
     │
     ├─── ToolControl
     │    ├── activeTool  : ToolId
@@ -200,6 +198,19 @@ BaseUIComponent
 `SurfaceControl` is where the two layers legitimately diverge. The *contents*
 are the same `PropertyControl` set; only the container differs. Keep the
 divergence at this one node of the tree and nowhere below it.
+
+---
+
+### Emission does not live here
+
+An earlier draft put `toCompose()` / `toCss()` on `DesignNode`. It no longer
+does. Emission is owned by the standalone `codegen/` package, which reads a
+contract and writes `.kt` and `.css`.
+
+*Rendering* a contract at runtime — what both editors do — and *generating*
+source from it are different jobs. The Android app never needs to emit Kotlin
+source, so giving the model that responsibility bought nothing and created a
+second emitter to keep byte-identical.
 
 ---
 
@@ -304,7 +315,7 @@ lets the client skip a no-op push.
 | `Immediate` | On mutation | Nothing, initially — it will hammer the backend on drag |
 | `Debounced(400ms)` | Mutation, coalesced | **Default for DesignNode** |
 | `Interval(cron)` | Background timer | Full-document reconcile, drift repair |
-| `Manual` | User action | `[Generate]`, `[Import]` |
+| `Manual` | User action | `[Generate]`, `[Generate]` |
 
 A drag emits ~60 mutations a second. `Debounced` is not an optimisation here,
 it is the difference between working and not.
@@ -338,20 +349,20 @@ Platform scheduler:
 
 ---
 
-## 7. `[Import]`
+## 7. `[Generate]`
 
 Not a DesignNode. Not in the contract. Not rendered by generated output.
 
 ```
-ImportAction : ActionControl
+GenerateAction : ActionControl
 ├── enabled when  : contract is clean (no pending sync) and validates
-├── run()         : POST /projects/{id}/import   body = current contract
+├── run()         : POST /projects/{id}/generate   body = current contract
 └── returns       : { checkpoint, artifacts: [ "Home.generated.kt",
                                                "home.generated.css",
                                                "home.generated.html" ] }
 ```
 
-**Guard it on a clean sync queue.** If `[Import]` fires while components are
+**Guard it on a clean sync queue.** If `[Generate]` fires while components are
 still dirty, the backend generates from a stale contract and the user gets
 output that does not match what is on their screen — which they will report as
 the generator being broken, not as a sync bug.
@@ -362,7 +373,7 @@ Sequence:
 client                         backend
   │  flush()  ────────────────▶  persist nodes
   │  ◀──────────────────────────  ack
-  │  [Import] ────────────────▶  load contract
+  │  [Generate] ────────────────▶  load contract
   │                              cut checkpoint cp_00N
   │                              run static codegen
   │  ◀──────────────────────────  artifact list
@@ -383,7 +394,7 @@ runs them.
 4. `EllipseNode`, `TextNode`, `ImageNode`
 5. `EditorControl` tree — chrome, per platform
 6. `SyncQueue` with `Debounced` only
-7. `Interval` reconcile, then `[Import]`
+7. `Interval` reconcile, then `[Generate]`
 
 Steps 1–3 are the ones worth doing carefully. If a rectangle with a label
 renders identically on both surfaces, everything after it is repetition. If it

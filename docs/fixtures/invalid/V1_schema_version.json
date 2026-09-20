@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 99,
+  "checkpoint": "cp_001",
+  "screen": "Home",
+  "reference": {
+    "w": 375,
+    "h": 667,
+    "unit": "dp"
+  },
+  "layout": "relative",
+  "components": {}
+}

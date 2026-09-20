@@ -16,8 +16,14 @@ The project is done when all four hold:
 
 1. A designer draws a screen on either surface, and the other surface shows the
    same screen after a sync
-2. `[Import]` produces `.kt` and `.css` that render **pixel-identical** to the
-   editor canvas at the reference viewport
+2. `[Generate]` produces `.kt` and `.css` that render **visually identical to
+   the editor canvas at the reference viewport, at default font scale**, within
+   the golden tolerance in Phase 4.
+
+   Not "pixel-identical": divergence D1 in `json_contract.md` already concedes
+   that Android `sp` reflows with the user's font-scale setting while web `px`
+   does not. Demanding pixel equality would be demanding something the spec
+   says is false, and the gate would never go green.
 3. Re-generating never destroys agent or hand-written code
 4. Every `DesignNode` type round-trips through JSON without loss
 
@@ -60,7 +66,8 @@ Phase 0 ──▶ Phase 1 ──┬──▶ Phase 2  web editor    ──┐
     foundations  core │                              ├──▶ Phase 4 parity
                       └──▶ Phase 3  android editor ──┘         │
                                                                ▼
-                           Phase 5 backend ──▶ Phase 6 sync ──▶ Phase 7 import
+                    Phase 5 backend + codegen ──▶ Phase 6 sync ──▶ Phase 7 generate
+                           (FastAPI, Python)
 ```
 
 Phases 2 and 3 are genuinely parallel — different people, no shared files
@@ -234,39 +241,69 @@ A gate, not a feature. Nothing past here until it passes.
 
 ---
 
-## Phase 5 · Backend
+## Phase 5 · Backend and codegen — FastAPI
 
-Ktor, sharing `:core` so the wire types cannot drift.
+`backend/`, Python + FastAPI. Feature-first: every slice owns its router,
+schemas, service, models and tests. `app/contract/` is a shared kernel, not a
+feature — sync, checkpoints and codegen all depend on it.
 
-- [ ] **76.** Project + screen persistence
-- [ ] **77.** `GET /projects/{id}/contract`
-- [ ] **78.** `PUT /projects/{id}/nodes` — batch upsert with envelopes
-- [ ] **79.** Envelope validation: schemaVersion, checksum, version monotonicity
-- [ ] **80.** Reject torn writes — checksum mismatch returns 409
-- [ ] **81.** Checkpoint store: immutable snapshots, `cp_00N`
-- [ ] **82.** `POST /projects/{id}/checkpoints`
-- [ ] **83.** Asset upload for `ImageNode` sources
-- [ ] **84.** AuthN/AuthZ — even a single shared token beats nothing
-- [ ] **85.** Structured logging + request ids
-- [ ] **86.** Contract-level validation endpoint, reused by `[Import]` gating
-- [ ] **87.** Integration tests against a real database, not mocks
+**Codegen lives here and nowhere else.** The backend cannot call Kotlin, so the
+emitters are Jinja2 templates in this phase rather than methods on `DesignNode`.
+*Rendering* a contract at runtime (both clients) and *generating* source from it
+(backend only) are different jobs; Android never needs to emit Kotlin source.
 
-**Exit:** both clients push and pull a contract against a deployed instance.
-**Effort:** 5–6 days.
+**Foundations**
+
+- [ ] **76.** `pyproject.toml`, app factory, `settings.py`, `GET /healthz`
+- [ ] **77.** Database, session dependency, migrations
+- [ ] **78.** `app/contract/models.py` — pydantic mirror of
+      `docs/json_contract.md`. Must reject unknown fields (V11)
+- [ ] **79.** `app/contract/validation.py` — rules V1–V12
+- [ ] **80.** `app/contract/canonical.py` — canonical serialisation and
+      checksum. **Server-owned**: clients send payload, the server computes and
+      returns the checksum, so canonical serialisation exists in one place
+      rather than three
+- [ ] **81.** `docs/fixtures/` corpus + a conformance test that Kotlin,
+      TypeScript and Python all run against the same files
+
+**Features**
+
+- [ ] **82.** `features/projects` — create, read, read contract
+- [ ] **83.** `features/sync` — batch node upsert, per-node LWW, **409 on a
+      version that is not greater than stored**
+- [ ] **84.** `features/checkpoints` — immutable snapshots, `cp_00N`
+- [ ] **85.** `features/assets` — image upload and serve for `ImageNode`
+
+**Codegen**
+
+- [ ] **86.** `templates/compose.kt.j2` — `Modifier.rel`, `.background`,
+      `.border` inside, `RoundedCornerShape(percent = 50)` for ellipses
+- [ ] **87.** `templates/styles.css.j2` — percentages, `box-sizing: border-box`,
+      explicit `line-height`, `white-space: pre-wrap`
+- [ ] **88.** `templates/markup.html.j2` — structure only, no inline geometry
+- [ ] **89.** Golden test: every fixture renders to the expected artifacts
+
+**Operations**
+
+- [ ] **90.** AuthN/AuthZ, structured logging with request ids, integration
+      tests against a real database rather than mocks, CI job
+
+**Exit:** both clients push and pull a contract; `/import` returns artifacts.
+**Effort:** 6–8 days.
 
 ---
 
-## Phase 6 · Synchronisation
+## Phase 6 · Client synchronisation
 
-- [ ] **88.** `SyncQueue` — enqueue, flush, onAck, onConflict
-- [ ] **89.** `Debounced(400ms)` policy as the default for `DesignNode`
-- [ ] **90.** Batching — one request per flush, not per node
-- [ ] **91.** Per-node last-write-wins on `updatedAt`, `version` breaking ties
-- [ ] **92.** Offline queue survives reload (web) and process death (Android)
-- [ ] **93.** Web: flush on `visibilitychange → hidden`
-- [ ] **94.** Android: `WorkManager` reconcile job
-- [ ] **95.** `Interval` reconcile — re-push dirty, pull newer, repair drift
-- [ ] **96.** Sync status surfaced in the UI — clean / pending / failed
+- [ ] **91.** `SyncQueue` — enqueue, flush, onAck, onConflict
+- [ ] **92.** `Debounced(400ms)` as the default for `DesignNode`. A drag emits
+      ~60 mutations a second; this is not an optimisation
+- [ ] **93.** Batching — one request per flush, not one per node
+- [ ] **94.** Offline queue survives reload (web) and process death (Android)
+- [ ] **95.** Web: flush on `visibilitychange → hidden`
+- [ ] **96.** Android: `WorkManager` reconcile job. The cron is a **reconciler**
+      that repairs drift, not the primary path — if it is doing the real
+      syncing, the debounce is broken
 - [ ] **97.** Two-client test: edit different nodes, both converge
 
 **Exit:** edit on a phone, see it on the web within one debounce plus latency.
@@ -274,17 +311,18 @@ Ktor, sharing `:core` so the wire types cannot drift.
 
 ---
 
-## Phase 7 · Codegen and Import
+## Phase 7 · Generate
 
-- [ ] **98.** `toCompose()` and `toCss()` on `DesignNode`, executed server-side
-- [ ] **99.** `POST /projects/{id}/import` — cut checkpoint, emit artifacts,
-      return the manifest
-- [ ] **100.** `[Import]` control on both surfaces, **disabled while the sync
-      queue is dirty**, with the generated/authored file boundary enforced:
-      codegen writes only `*.generated.*`, never an authored file
+- [ ] **98.** `POST /projects/{id}/generate` — cut a checkpoint, run codegen,
+      return the artifact manifest
+- [ ] **99.** `[Generate]` control on both surfaces, **disabled while the sync
+      queue is dirty**. Importing against a stale contract produces output that
+      does not match the screen, which users report as a broken generator
+- [ ] **100.** Generated/authored boundary enforced: codegen writes only
+      `*.generated.*`, never an authored file
 
 **Exit:** press Import, get `.kt` and `.css` that pass the Phase 4 goldens.
-**Effort:** 3–4 days.
+**Effort:** 2–3 days.
 
 ---
 
@@ -297,12 +335,12 @@ Ktor, sharing `:core` so the wire types cannot drift.
 | 2 Web editor | 5–7 d | 12 d | ✔ with 3 |
 | 3 Android editor | 8–10 d | 15 d | ✔ with 2 |
 | 4 Parity gate | 3–4 d | 19 d | — |
-| 5 Backend | 5–6 d | 25 d | ✔ with 2/3 |
-| 6 Sync | 4–5 d | 30 d | — |
-| 7 Import | 3–4 d | 34 d | — |
+| 5 Backend + codegen | 6–8 d | 27 d | ✔ with 2/3 |
+| 6 Client sync | 4–5 d | 32 d | — |
+| 7 Generate | 2–3 d | 35 d | — |
 
-**Solo, sequential: ~34 working days.** Two people splitting web and Android
-after Phase 1: **~22 days**.
+**Solo, sequential: ~35 working days.** Two people splitting web and Android
+after Phase 1: **~23 days**.
 
 ---
 
@@ -315,7 +353,7 @@ demonstrable product.
 |---|---|---|
 | **1** | Phase 6 sync | Manual export/import of the contract file |
 | **2** | Android *editing* | Android as a read-only contract renderer — 2 days, still proves one contract two surfaces |
-| **3** | Phase 5 backend | Codegen in the web client, contract in localStorage |
+| **3** | Phase 5 persistence | Keep codegen — run FastAPI in-memory, contract posted per request |
 | **4** | `ImageNode` | Rect, ellipse, text — the pipeline claim is intact |
 | **5** | `EllipseNode` | Rect with radius covers most of it |
 
@@ -331,6 +369,7 @@ rather than a demo.
 |---|---|---|---|
 | Renderer drift between surfaces | **High** | **High** | Phase 4 goldens in CI. This is why the gate exists |
 | Compose Multiplatform web is Beta | Med | Med | Not on the critical path — web is TS, not Wasm |
+| Python contract model drifts from Kotlin | **High** | **High** | `docs/fixtures/` corpus, run by all three implementations in CI |
 | Text metrics differ despite same font | **High** | Med | Self-host Roboto, emit explicit line-height, golden-test it |
 | Sync conflicts corrupt a screen | Low | **High** | Node-level LWW, checksum, immutable checkpoints to roll back to |
 | Android editor overruns its estimate | **High** | Med | Cut line 2 is pre-agreed, not a crisis decision |

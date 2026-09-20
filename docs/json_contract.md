@@ -153,6 +153,25 @@ Note Compose takes a **fraction** (0.075), CSS takes a **percentage** (7.5%).
 Dividing by 100 in exactly one of the two generators is the most likely
 arithmetic bug in this project.
 
+### Units. Normative.
+
+**1 dp = 1 px at the reference viewport.** Every non-percentage length in this
+document — `stroke.width`, a numeric `radius`, `text.size` — is expressed in
+that unit and emitted as:
+
+| Target | Unit | Behaviour away from the reference viewport |
+|---|---|---|
+| CSS | `px` | fixed; the frame scales, these do not |
+| Compose | `.dp` | scales with display density |
+| Compose text | `.sp` | also scales with the user's font-scale setting — divergence D1 |
+
+A generator must not convert between dp and px. It writes the number through
+unchanged and appends the target's unit. Any other rule makes a 14dp radius a
+different size on the two surfaces at density ≠ 1.
+
+Percentages in `rect` are unaffected — they are resolved against the frame at
+layout time on both targets.
+
 ---
 
 ## 6 · Color
@@ -322,8 +341,20 @@ Nodes are pushed wrapped:
 }
 ```
 
+### What `payload` contains. Normative.
+
+`payload` is **the complete §4 component object, unchanged** — including `id`,
+`type`, `version` and `updatedAt`. The envelope's copies of those four fields
+are a routing convenience so a server can dispatch without parsing the body;
+they are duplicates, not a different shape.
+
+On any disagreement between an envelope field and its copy inside `payload`,
+**`payload` wins** and the server responds `422`. There is exactly one
+serialisation of a node, and `payload` is it.
+
 - `checksum` covers the **canonical serialisation of `payload` only** —
-  §13. It lets the server reject a torn write and the client skip a no-op push
+  §13. It is **computed by the server and returned**; clients never compute it.
+  It lets the server reject a torn write and lets a client skip a no-op push
 - Conflict resolution is **per-node last-write-wins on `updatedAt`**, with
   higher `version` breaking a tie. Node granularity is the point: two people on
   different components never conflict
@@ -455,7 +486,7 @@ A complete, valid two-node contract:
 
 ```kotlin
 // GENERATED FROM contract cp_005 — DO NOT EDIT
-// Rewritten wholesale on every [Import]. Behaviour goes in Home.kt
+// Rewritten wholesale on every [Generate]. Behaviour goes in Home.kt
 
 package com.ikk.ui.generated
 

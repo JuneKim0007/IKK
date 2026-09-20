@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "cp_006",
+  "screen": "Home",
+  "reference": {
+    "w": 375,
+    "h": 667,
+    "unit": "dp"
+  },
+  "layout": "relative",
+  "components": {
+    "rect_1": {
+      "id": "n1",
+      "type": "rect",
+      "z": 0,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 100.0,
+        "h": 27.0,
+        "unit": "%"
+      },
+      "fill": "#65558F",
+      "stroke": null,
+      "radius": 0,
+      "text": {
+        "value": "Sign in",
+        "size": 16.0,
+        "align": "center",
+        "color": "#FFFFFF",
+        "weight": "medium",
+        "maxLines": 1
+      },
+      "version": 3,
+      "updatedAt": "2026-09-20T14:22:31Z"
+    },
+    "rect_5": {
+      "id": "n5",
+      "type": "rect",
+      "z": 1,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": {
+        "x": 7.5,
+        "y": 60.0,
+        "w": 85.0,
+        "h": 6.9,
+        "unit": "%"
+      },
+      "fill": "#4C6FBF",
+      "stroke": null,
+      "radius": 25,
+      "text": {
+        "value": "",
+        "size": 16.0,
+        "align": "center",
+        "color": "#FFFFFF",
+        "weight": "medium",
+        "maxLines": null
+      },
+      "version": 1,
+      "updatedAt": "2026-09-20T14:25:02Z"
+    }
+  }
+}

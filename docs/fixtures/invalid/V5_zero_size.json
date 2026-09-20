@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "cp_001",
+  "screen": "Home",
+  "reference": {
+    "w": 375,
+    "h": 667,
+    "unit": "dp"
+  },
+  "layout": "relative",
+  "components": {
+    "rect_1": {
+      "id": "n1",
+      "type": "rect",
+      "z": 0,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": {
+        "x": 0.0,
+        "y": 0.0,
+        "w": 0.0,
+        "h": 10.0,
+        "unit": "%"
+      },
+      "fill": "#65558F",
+      "stroke": null,
+      "radius": 0,
+      "text": null,
+      "version": 1,
+      "updatedAt": "2026-09-20T14:22:31Z"
+    }
+  }
+}
