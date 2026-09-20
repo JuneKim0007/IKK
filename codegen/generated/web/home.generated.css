@@ -1,0 +1,132 @@
+/* GENERATED FROM contract cp_005 — DO NOT EDIT. */
+
+.screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 375 / 667;
+  overflow: hidden;
+}
+
+.ikk-node {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.rect_1 {
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 27%;
+  z-index: 0;
+  background: #65558F;
+  border-radius: 0px;
+}
+
+.text_2 {
+  left: 7.5%;
+  top: 11.1%;
+  width: 69.3%;
+  height: 5.1%;
+  z-index: 1;
+  border-radius: 0px;
+  color: #FFFFFF;
+  font-family: "Roboto", sans-serif;
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 600;
+  text-align: start;
+  justify-content: flex-start;
+  white-space: pre-wrap;
+  padding: 0 6px;
+}
+
+.text_3 {
+  left: 7.5%;
+  top: 16.8%;
+  width: 74.7%;
+  height: 3.3%;
+  z-index: 2;
+  border-radius: 0px;
+  color: #E5DEF5;
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 400;
+  text-align: start;
+  justify-content: flex-start;
+  white-space: pre-wrap;
+  padding: 0 6px;
+}
+
+.rect_4 {
+  left: 6.4%;
+  top: 31.8%;
+  width: 87.2%;
+  height: 16.5%;
+  z-index: 3;
+  background: #FFFFFF;
+  border: 1px solid #DAD5E2;
+  border-radius: 14px;
+  color: #1B1D1C;
+  font-family: "Roboto", sans-serif;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 400;
+  text-align: start;
+  justify-content: flex-start;
+  white-space: pre-wrap;
+  padding: 0 6px;
+}
+
+.image_5 {
+  left: 6.4%;
+  top: 51.3%;
+  width: 87.2%;
+  height: 22.5%;
+  z-index: 4;
+  background: #DFDAE6;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.ellipse_6 {
+  left: 78.4%;
+  top: 26.7%;
+  width: 14.9%;
+  height: 8.4%;
+  z-index: 5;
+  background: #2E8B74;
+  border-radius: 50%;
+  color: #FFFFFF;
+  font-family: "Roboto", sans-serif;
+  font-size: 22px;
+  line-height: 29px;
+  font-weight: 600;
+  text-align: center;
+  justify-content: center;
+  white-space: pre-wrap;
+  padding: 0 6px;
+}
+
+.rect_7 {
+  left: 6.4%;
+  top: 78%;
+  width: 87.2%;
+  height: 7.5%;
+  z-index: 6;
+  background: #4C6FBF;
+  border-radius: 25px;
+  color: #FFFFFF;
+  font-family: "Roboto", sans-serif;
+  font-size: 16px;
+  line-height: 21px;
+  font-weight: 500;
+  text-align: center;
+  justify-content: center;
+  white-space: pre-wrap;
+  padding: 0 6px;
+}
