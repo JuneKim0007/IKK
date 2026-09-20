@@ -28,8 +28,8 @@ test("generates stable Web CSS from the example contract", async () => {
 
   assert.equal(generated, golden);
   assert.match(generated, /box-sizing: border-box/);
-  assert.match(generated, /\.rect_7 \{[\s\S]*width: 87\.2%;/);
-  assert.match(generated, /\.image_5 \{[\s\S]*object-fit: cover;/);
+  assert.match(generated, /\.rect_primaryAction \{[\s\S]*width: 87\.2%;/);
+  assert.match(generated, /\.image_cover \{[\s\S]*object-fit: cover;/);
   assert.match(generated, /white-space: pre-wrap/);
 });
 
@@ -71,7 +71,7 @@ test("escapes Kotlin strings instead of emitting executable interpolation", () =
         text: {
           value: "Quote \" slash \\ dollar $value\nnext",
           size: 16,
-          align: "left",
+          align: "start",
           color: "#000000"
         }
       }
@@ -103,7 +103,7 @@ test("rejects ambiguous or unsupported contract values", () => {
       reference: { w: 375, h: 667, unit: "dp" },
       layout: "relative",
       components: {
-        rect_1: {
+        rect_header: {
           id: "n1",
           type: "rect",
           visible: "false",

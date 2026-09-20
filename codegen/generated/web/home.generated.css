@@ -16,7 +16,7 @@
   overflow: hidden;
 }
 
-.rect_1 {
+.rect_header {
   left: 0%;
   top: 0%;
   width: 100%;
@@ -26,7 +26,7 @@
   border-radius: 0px;
 }
 
-.text_2 {
+.text_greeting {
   left: 7.5%;
   top: 11.1%;
   width: 69.3%;
@@ -44,7 +44,7 @@
   padding: 0 6px;
 }
 
-.text_3 {
+.text_subtitle {
   left: 7.5%;
   top: 16.8%;
   width: 74.7%;
@@ -62,7 +62,7 @@
   padding: 0 6px;
 }
 
-.rect_4 {
+.rect_taskCard {
   left: 6.4%;
   top: 31.8%;
   width: 87.2%;
@@ -82,7 +82,7 @@
   padding: 0 6px;
 }
 
-.image_5 {
+.image_cover {
   left: 6.4%;
   top: 51.3%;
   width: 87.2%;
@@ -93,7 +93,7 @@
   object-fit: cover;
 }
 
-.ellipse_6 {
+.ellipse_badge {
   left: 78.4%;
   top: 26.7%;
   width: 14.9%;
@@ -112,7 +112,7 @@
   padding: 0 6px;
 }
 
-.rect_7 {
+.rect_primaryAction {
   left: 6.4%;
   top: 78%;
   width: 87.2%;

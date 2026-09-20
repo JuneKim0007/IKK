@@ -274,14 +274,18 @@ emitters are Jinja2 templates in this phase rather than methods on `DesignNode`.
 - [ ] **84.** `features/checkpoints` — immutable snapshots, `cp_00N`
 - [ ] **85.** `features/assets` — image upload and serve for `ImageNode`
 
-**Codegen**
+**Codegen — `codegen/`, not the backend**
 
-- [ ] **86.** `templates/compose.kt.j2` — `Modifier.rel`, `.background`,
-      `.border` inside, `RoundedCornerShape(percent = 50)` for ellipses
-- [ ] **87.** `templates/styles.css.j2` — percentages, `box-sizing: border-box`,
-      explicit `line-height`, `white-space: pre-wrap`
-- [ ] **88.** `templates/markup.html.j2` — structure only, no inline geometry
-- [ ] **89.** Golden test: every fixture renders to the expected artifacts
+Emission is a standalone Node package with no dependencies. The backend shells
+out to it; it does not re-implement the emitters. Two emitters would have to
+stay byte-identical forever.
+
+- [x] **86.** Compose emitter — `Modifier.rel`, `.background`, `.border` inside,
+      `RoundedCornerShape(percent = 50)` for ellipses, Kotlin string escaping
+- [x] **87.** CSS emitter — percentages, explicit `line-height`, `pre-wrap`
+- [ ] **88.** HTML emitter — structure only, no inline geometry
+- [ ] **89.** Golden test: every fixture in `docs/fixtures/valid/` emits and
+      re-emits identically (`--check`)
 
 **Operations**
 

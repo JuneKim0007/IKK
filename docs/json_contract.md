@@ -320,7 +320,7 @@ test that catches it.
   "size": 26,
   "align": "start",
   "color": "#FFFFFF",
-  "weight": "semibold",
+  "weight": 600,
   "maxLines": null
 }
 ```
@@ -331,7 +331,9 @@ test that catches it.
 | `size` | number | ✔ | dp at the reference viewport |
 | `align` | enum | ✔ | `start` · `center` · `end` |
 | `color` | Color | ✔ | Not nullable. Text with no colour is invisible, which is a design error, not a state |
-| `weight` | enum | ✔ | `normal` · `medium` · `semibold` |
+| `weight` | int | ✔ | 100–900 in steps of 100. CSS and Compose both take this natively |
+| `lineHeight` | number \| null | ✔ | dp. `null` means `size × 1.3` |
+| `fontFamily` | string | ✔ | Must resolve on both surfaces. v1: `"Roboto"` |
 | `maxLines` | int \| null | ✔ | `null` = unbounded |
 
 ### `text: null` vs `text: { "value": "" }`
@@ -351,7 +353,8 @@ not a special case in the renderer.
    Without it the newline collapses to a space and only the web output is wrong
 2. Line height **must** be emitted explicitly on both targets. CSS
    `line-height: normal` is font-dependent and differs from Compose's default.
-   v1 uses **1.3**
+   A `null` `lineHeight` resolves to `size × 1.3`; the generator writes the
+   resolved number, never the word `normal`
 3. Vertical alignment is **centred** in the node's box on both targets
 4. Horizontal padding is **6dp** on both targets
 5. Font family is **Roboto** on both. The web must self-host it, not fall back
@@ -373,13 +376,13 @@ than discovering it in a demo.
 | `stroke` | ✔ | ✔ | null | ✔ |
 | `radius` | number | `"50%"` | `0` | number |
 | `text` | optional | optional | **required** | null |
-| `source` | — | — | — | **required** |
+| `source` | — | — | — | nullable — `null` is an unfilled frame |
 | `contentScale` | — | — | — | **required** |
 
 A `type: "image"` node adds:
 
 ```json
-"source": { "ref": "asset_12", "mime": "image/png" },
+"source": { "ref": "asset_12", "mime": "image/png" },   // or null
 "contentScale": "crop"
 ```
 
@@ -442,7 +445,7 @@ A contract is valid when all hold. Reject, do not repair.
 | V5 | `rect.w > 0` and `rect.h > 0` |
 | V6 | `radius` is a number ≥ 0, or exactly `"50%"` |
 | V7 | `type == "text"` ⟹ `text != null` |
-| V8 | `type == "image"` ⟹ `source != null` and `contentScale != null` |
+| V8 | `type == "image"` ⟹ `contentScale` is set. `source` may be `null` — an image frame can exist before a file is chosen, as in any design tool |
 | V9 | Every colour matches `^#[0-9A-F]{6}([0-9A-F]{2})?$` |
 | V10 | `ellipse` ⟹ `radius == "50%"` |
 | V11 | No unknown fields anywhere |
@@ -513,7 +516,7 @@ A complete, valid two-node contract:
         "size": 26,
         "align": "start",
         "color": "#FFFFFF",
-        "weight": "semibold",
+        "weight": 600,
         "maxLines": null
       },
       "version": 7,

@@ -12,7 +12,11 @@ const DEFAULT_PATHS = {
 };
 
 const NODE_TYPES = new Set(["rect", "text", "ellipse", "image"]);
-const ALIGNMENTS = new Set(["left", "center", "right", "start", "end"]);
+// docs/json_contract.md §9 — three values, not five. start/end are
+// writing-direction aware and map to TextAlign.Start/End and CSS logical
+// alignment; left/right are physical and break RTL. Accepting synonyms would
+// let two contracts that render identically hash differently.
+const ALIGNMENTS = new Set(["start", "center", "end"]);
 const CONTENT_SCALES = new Set(["crop", "fit", "fill"]);
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
@@ -91,7 +95,7 @@ function normalizeText(value, location) {
   const size = positiveNumberAt(text.size, `${location}.size`);
   const align = stringAt(text.align, `${location}.align`).toLowerCase();
   if (!ALIGNMENTS.has(align)) {
-    fail(`${location}.align`, "expected left, center, right, start, or end");
+    fail(`${location}.align`, "expected start, center, or end");
   }
 
   let maxLines = null;
@@ -253,7 +257,7 @@ function cssString(value) {
 
 function cssAlignment(align) {
   if (align === "center") return { text: "center", content: "center" };
-  if (align === "right" || align === "end") return { text: "end", content: "flex-end" };
+  if (align === "end") return { text: "end", content: "flex-end" };
   return { text: "start", content: "flex-start" };
 }
 

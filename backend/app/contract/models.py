@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -25,7 +25,7 @@ def slug(raw: str) -> str:
     return parts[0].lower() + "".join(p.lower().capitalize() for p in parts[1:])
 
 _COLOR = re.compile(r"^#[0-9A-F]{6}([0-9A-F]{2})?$")
-_KEY = re.compile(r"^(rect|ellipse|text|image)_\d+$")
+_KEY = re.compile(r"^(rect|ellipse|text|image)_[A-Za-z0-9]+$")
 
 
 class Strict(BaseModel):
@@ -85,14 +85,18 @@ class TextPayload(Strict):
     size: float
     align: Literal["start", "center", "end"]
     color: Color
-    weight: Literal["normal", "medium", "semibold"]
+    weight: int = Field(ge=100, le=900, multiple_of=100)
+    lineHeight: float | None = None
+    fontFamily: str = "Roboto"
     maxLines: int | None = None
 
-    LINE_HEIGHT_RATIO = 1.3
+    LINE_HEIGHT_RATIO: ClassVar[float] = 1.3
 
     @property
-    def line_height(self) -> float:
-        return round(self.size * self.LINE_HEIGHT_RATIO, 2)
+    def resolved_line_height(self) -> float:
+        return self.lineHeight if self.lineHeight is not None else round(
+            self.size * self.LINE_HEIGHT_RATIO, 2
+        )
 
 
 class AssetRef(Strict):
@@ -167,7 +171,7 @@ class TextNode(NodeBase):
 
 class ImageNode(NodeBase):
     type: Literal["image"] = "image"
-    source: AssetRef
+    source: AssetRef | None = None
     contentScale: Literal["crop", "fit", "fill"] = "crop"
     alt: str = ""
     accepts_text: bool = False

@@ -141,13 +141,20 @@ data class TextPayload(
     val size: Double,
     val align: TextAlign,
     val color: Color,
-    val weight: TextWeight,
+    val weight: Int,
+    val lineHeight: Double? = null,
+    val fontFamily: String = "Roboto",
     val maxLines: Int? = null,
 ) {
-    init { require(size > 0) { "text size must be > 0, got $size" } }
+    init {
+        require(size > 0) { "text size must be > 0, got $size" }
+        require(weight in 100..900 && weight % 100 == 0) {
+            "weight must be 100..900 in steps of 100, got $weight"
+        }
+    }
 
-    /** v1 pins line height at 1.3 and emits it explicitly on both targets. */
-    val lineHeight: Double get() = size * LINE_HEIGHT_RATIO
+    /** Resolved line height. Generators emit this number, never "normal". */
+    val resolvedLineHeight: Double get() = lineHeight ?: (size * LINE_HEIGHT_RATIO)
 
     companion object { const val LINE_HEIGHT_RATIO = 1.3 }
 }
@@ -157,13 +164,6 @@ enum class TextAlign {
     @kotlinx.serialization.SerialName("start") START,
     @kotlinx.serialization.SerialName("center") CENTER,
     @kotlinx.serialization.SerialName("end") END,
-}
-
-@Serializable
-enum class TextWeight {
-    @kotlinx.serialization.SerialName("normal") NORMAL,
-    @kotlinx.serialization.SerialName("medium") MEDIUM,
-    @kotlinx.serialization.SerialName("semibold") SEMIBOLD,
 }
 
 @Serializable

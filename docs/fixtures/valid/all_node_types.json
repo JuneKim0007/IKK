@@ -52,8 +52,10 @@
         "size": 26.0,
         "align": "start",
         "color": "#FFFFFF",
-        "weight": "semibold",
-        "maxLines": null
+        "weight": 600,
+        "maxLines": null,
+        "lineHeight": null,
+        "fontFamily": "Roboto"
       },
       "version": 7,
       "updatedAt": "2026-09-20T14:25:02Z"
@@ -80,8 +82,10 @@
         "size": 22.0,
         "align": "center",
         "color": "#FFFFFF",
-        "weight": "semibold",
-        "maxLines": null
+        "weight": 600,
+        "maxLines": null,
+        "lineHeight": null,
+        "fontFamily": "Roboto"
       },
       "version": 1,
       "updatedAt": "2026-09-20T14:25:02Z"

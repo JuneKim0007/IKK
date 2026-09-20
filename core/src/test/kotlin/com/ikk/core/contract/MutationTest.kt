@@ -35,7 +35,7 @@ class MutationTest {
     @Test
     fun `withText adds a slot and versions`() {
         val after = node.withText(
-            TextPayload("Label", 14.0, TextAlign.START, Color.of("#000000"), TextWeight.NORMAL), t1
+            TextPayload("Label", 14.0, TextAlign.START, Color.of("#000000"), 400), t1
         )
         assertEquals(2, after.version)
         assertEquals("Label", after.text!!.value)
@@ -44,7 +44,7 @@ class MutationTest {
     @Test
     fun `withText null removes the slot`() {
         val withText = node.withText(
-            TextPayload("Label", 14.0, TextAlign.START, Color.of("#000000"), TextWeight.NORMAL), t1
+            TextPayload("Label", 14.0, TextAlign.START, Color.of("#000000"), 400), t1
         )
         assertEquals(null, withText.withText(null, t1).text)
     }
@@ -54,7 +54,7 @@ class MutationTest {
         TextNode(
             id = "n2", name = "Title", z = 1,
             rect = RelRect.of(0.0, 0.0, 10.0, 10.0),
-            text = TextPayload("x", 12.0, TextAlign.START, Color.of("#000000"), TextWeight.NORMAL),
+            text = TextPayload("x", 12.0, TextAlign.START, Color.of("#000000"), 400),
             updatedAt = t0,
         ).withText(null, t1)
     }
@@ -100,7 +100,7 @@ class MutationTest {
 class CapabilityTest {
     private val t = Instant.parse("2026-09-20T14:22:31Z")
     private val r = RelRect.of(0.0, 0.0, 10.0, 10.0)
-    private val tp = TextPayload("x", 12.0, TextAlign.START, Color.of("#000000"), TextWeight.NORMAL)
+    private val tp = TextPayload("x", 12.0, TextAlign.START, Color.of("#000000"), 400)
 
     @Test fun `rect accepts text, fill and an editable radius`() {
         val n = RectNode(id = "n1", name = "Header", z = 0, rect = r, updatedAt = t)

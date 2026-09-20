@@ -178,7 +178,7 @@ data class ImageNode(
     override val visible: Boolean = true,
     override val opacity: Double = 1.0,
     override val rect: RelRect,
-    val source: AssetRef,
+    val source: AssetRef? = null,
     val contentScale: ContentScale = ContentScale.CROP,
     val alt: String = "",
     override val fill: Color? = null,

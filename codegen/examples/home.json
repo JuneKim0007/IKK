@@ -9,9 +9,10 @@
   },
   "layout": "relative",
   "components": {
-    "rect_1": {
+    "rect_header": {
       "id": "n1",
       "type": "rect",
+      "name": "Header",
       "z": 0,
       "visible": true,
       "rect": {
@@ -26,11 +27,13 @@
       "radius": 0,
       "opacity": 1,
       "text": null,
-      "updatedAt": null
+      "updatedAt": "2026-09-20T14:22:31Z",
+      "version": 1
     },
-    "text_2": {
+    "text_greeting": {
       "id": "n2",
       "type": "text",
+      "name": "Greeting",
       "z": 1,
       "visible": true,
       "rect": {
@@ -40,7 +43,7 @@
         "h": 5.1,
         "unit": "%"
       },
-      "fill": "none",
+      "fill": null,
       "stroke": null,
       "radius": 0,
       "opacity": 1,
@@ -49,16 +52,18 @@
         "size": 26,
         "lineHeight": 34,
         "weight": 600,
-        "align": "left",
+        "align": "start",
         "color": "#FFFFFF",
         "fontFamily": "Roboto",
         "maxLines": 1
       },
-      "updatedAt": null
+      "updatedAt": "2026-09-20T14:22:31Z",
+      "version": 1
     },
-    "text_3": {
+    "text_subtitle": {
       "id": "n3",
       "type": "text",
+      "name": "Subtitle",
       "z": 2,
       "visible": true,
       "rect": {
@@ -68,7 +73,7 @@
         "h": 3.3,
         "unit": "%"
       },
-      "fill": "none",
+      "fill": null,
       "stroke": null,
       "radius": 0,
       "opacity": 1,
@@ -77,16 +82,18 @@
         "size": 14,
         "lineHeight": 18,
         "weight": 400,
-        "align": "left",
+        "align": "start",
         "color": "#E5DEF5",
         "fontFamily": "Roboto",
         "maxLines": 1
       },
-      "updatedAt": null
+      "updatedAt": "2026-09-20T14:22:31Z",
+      "version": 1
     },
-    "rect_4": {
+    "rect_taskCard": {
       "id": "n4",
       "type": "rect",
+      "name": "Task card",
       "z": 3,
       "visible": true,
       "rect": {
@@ -108,16 +115,18 @@
         "size": 15,
         "lineHeight": 20,
         "weight": 400,
-        "align": "left",
+        "align": "start",
         "color": "#1B1D1C",
         "fontFamily": "Roboto",
         "maxLines": 2
       },
-      "updatedAt": null
+      "updatedAt": "2026-09-20T14:22:31Z",
+      "version": 1
     },
-    "image_5": {
+    "image_cover": {
       "id": "n5",
       "type": "image",
+      "name": "Cover",
       "z": 4,
       "visible": true,
       "rect": {
@@ -134,11 +143,13 @@
       "contentScale": "crop",
       "alt": "Cover",
       "text": null,
-      "updatedAt": null
+      "updatedAt": "2026-09-20T14:22:31Z",
+      "version": 1
     },
-    "ellipse_6": {
+    "ellipse_badge": {
       "id": "n6",
       "type": "ellipse",
+      "name": "Badge",
       "z": 5,
       "visible": true,
       "rect": {
@@ -162,11 +173,13 @@
         "fontFamily": "Roboto",
         "maxLines": 1
       },
-      "updatedAt": null
+      "updatedAt": "2026-09-20T14:22:31Z",
+      "version": 1
     },
-    "rect_7": {
+    "rect_primaryAction": {
       "id": "n7",
       "type": "rect",
+      "name": "Primary action",
       "z": 6,
       "visible": true,
       "rect": {
@@ -190,7 +203,8 @@
         "fontFamily": "Roboto",
         "maxLines": 1
       },
-      "updatedAt": null
+      "updatedAt": "2026-09-20T14:22:31Z",
+      "version": 1
     }
   }
 }

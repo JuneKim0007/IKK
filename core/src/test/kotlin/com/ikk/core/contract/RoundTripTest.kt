@@ -35,14 +35,14 @@ class RoundTripTest {
         id = "n2", name = "Title", z = 1,
         rect = RelRect.of(78.4, 26.7, 14.9, 8.4),
         fill = Color.of("#2E8B74"),
-        text = TextPayload("3", 22.0, TextAlign.CENTER, Color.of("#FFFFFF"), TextWeight.SEMIBOLD),
+        text = TextPayload("3", 22.0, TextAlign.CENTER, Color.of("#FFFFFF"), 600),
         updatedAt = now,
     )
 
     private val text = TextNode(
         id = "n3", name = "Badge", z = 2,
         rect = RelRect.of(7.5, 11.1, 69.3, 5.1),
-        text = TextPayload("Good morning", 26.0, TextAlign.START, Color.of("#FFFFFF"), TextWeight.SEMIBOLD),
+        text = TextPayload("Good morning", 26.0, TextAlign.START, Color.of("#FFFFFF"), 600),
         updatedAt = now,
     )
 
@@ -73,7 +73,7 @@ class RoundTripTest {
         val noSlot = rect.copy(id = "n9", name = "Bare", text = null)
         val emptySlot = rect.copy(
             id = "n8", name = "Slot",
-            text = TextPayload("", 14.0, TextAlign.START, Color.of("#000000"), TextWeight.NORMAL),
+            text = TextPayload("", 14.0, TextAlign.START, Color.of("#000000"), 400),
         )
         val back = roundTrip(contractOf(noSlot, emptySlot.copy(z = 5)))
         assertNull(back.components["rect_bare"]!!.text)

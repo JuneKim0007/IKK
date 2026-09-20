@@ -20,19 +20,20 @@ app/
     ├── projects/
     ├── sync/
     ├── checkpoints/
-    ├── codegen/       Jinja2 templates. Codegen lives here and nowhere else
     └── assets/
 ```
 
 `contract/` is a shared kernel rather than a feature because sync, checkpoints
 and codegen all depend on it. Making it a feature would invert the dependency.
 
-## Why codegen is here
+## Codegen is NOT here
 
-The backend cannot call Kotlin, so the emitters are Jinja2 templates rather
-than methods on `DesignNode`. *Rendering* a contract at runtime (both clients)
-and *generating* source from it (backend only) are different jobs — the Android
-app never needs to emit Kotlin source.
+Emission lives in the standalone `codegen/` package (Node, no dependencies).
+This service persists contracts, resolves sync, and cuts checkpoints; when
+`POST /v1/projects/{id}/generate` is wired it will shell out to that package
+rather than re-implement the emitters.
+
+Two emitters would have to stay byte-identical forever. One does not.
 
 ## Run
 

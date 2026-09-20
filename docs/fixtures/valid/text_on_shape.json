@@ -31,8 +31,10 @@
         "size": 16.0,
         "align": "center",
         "color": "#FFFFFF",
-        "weight": "medium",
-        "maxLines": 1
+        "weight": 500,
+        "maxLines": 1,
+        "lineHeight": null,
+        "fontFamily": "Roboto"
       },
       "version": 3,
       "updatedAt": "2026-09-20T14:22:31Z"
@@ -59,8 +61,10 @@
         "size": 16.0,
         "align": "center",
         "color": "#FFFFFF",
-        "weight": "medium",
-        "maxLines": null
+        "weight": 500,
+        "maxLines": null,
+        "lineHeight": null,
+        "fontFamily": "Roboto"
       },
       "version": 1,
       "updatedAt": "2026-09-20T14:25:02Z"
