@@ -1,45 +1,32 @@
 /* One source for colour, type and spacing. Both surfaces read the same values;
    the Android side mirrors them in its theme. */
 :root {
-  --chrome: #F2F3F1;
-  --chrome-2: #E7E9E6;
-  --workspace: #9DA2A0;
-  --panel: #FFFFFF;
-  --ink: #1B1D1C;
-  --muted: #616764;
-  --line: #CFD2CE;
-  --accent: #2F5D8C;
-  --accent-soft: #DDE8F3;
-  --danger: #A03F1C;
-  --ok: #2B6A4A;
+  color-scheme: dark;
+  --chrome: #151816;
+  --chrome-2: #202420;
+  --workspace: #0F1210;
+  --panel: #191D1A;
+  --panel-raised: #222723;
+  --ink: #F3F1EA;
+  --muted: #909790;
+  --line: #343A35;
+  --line-strong: #4A514B;
+  --accent: #B7E36D;
+  --accent-soft: #29341F;
+  --danger: #F18A67;
+  --ok: #B7E36D;
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
 
-  --font: "Roboto", ui-sans-serif, system-ui, sans-serif;
-  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --font: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* docs/json_contract.md — the reference viewport the design is authored against */
   --frame-w: 375;
   --frame-h: 667;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --chrome: #1A1C1B;
-    --chrome-2: #232625;
-    --workspace: #2B2F2D;
-    --panel: #202322;
-    --ink: #E5E8E6;
-    --muted: #949B98;
-    --line: #343836;
-    --accent: #8FB5DC;
-    --accent-soft: #1A2A39;
-    --danger: #DF8A62;
-    --ok: #6FBD94;
-  }
 }

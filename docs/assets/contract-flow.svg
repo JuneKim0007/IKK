@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">IKK contract flow</title>
+  <desc id="desc">The editor saves one JSON contract which deterministically generates Web and Android artifacts.</desc>
+  <rect width="1200" height="300" rx="24" fill="#151816"/>
+  <g font-family="Manrope,Arial,sans-serif">
+    <text x="58" y="58" fill="#8F9790" font-family="IBM Plex Mono,monospace" font-size="12" letter-spacing="2">THE WHOLE PIPELINE</text>
+    <g transform="translate(58 92)">
+      <rect width="250" height="150" rx="16" fill="#1D211E" stroke="#353B36"/>
+      <text x="24" y="38" fill="#B7E36D" font-size="12" font-weight="700" letter-spacing="1.2">01 / DESIGN</text>
+      <text x="24" y="78" fill="#F4F0E8" font-size="24" font-weight="700">Visual editor</text>
+      <text x="24" y="108" fill="#8F9790" font-size="13">Draw, name, and style nodes.</text>
+      <text x="24" y="130" fill="#8F9790" font-size="13">No screenshot handoff.</text>
+    </g>
+    <path d="M332 167h65" stroke="#B7E36D" stroke-width="2"/><path d="M388 159l10 8-10 8" fill="none" stroke="#B7E36D" stroke-width="2"/>
+    <g transform="translate(422 92)">
+      <rect width="356" height="150" rx="16" fill="#B7E36D"/>
+      <text x="24" y="38" fill="#354124" font-size="12" font-weight="700" letter-spacing="1.2">02 / SOURCE OF TRUTH</text>
+      <text x="24" y="78" fill="#151816" font-size="24" font-weight="700">Versioned JSON contract</text>
+      <text x="24" y="108" fill="#354124" font-family="IBM Plex Mono,monospace" font-size="12">geometry · type · colour · text · z</text>
+      <text x="24" y="132" fill="#354124" font-family="IBM Plex Mono,monospace" font-size="12">checkpoint cp_007 · deterministic</text>
+    </g>
+    <path d="M802 167h65" stroke="#B7E36D" stroke-width="2"/><path d="M858 159l10 8-10 8" fill="none" stroke="#B7E36D" stroke-width="2"/>
+    <g transform="translate(892 92)">
+      <rect width="250" height="150" rx="16" fill="#1D211E" stroke="#353B36"/>
+      <text x="24" y="38" fill="#B7E36D" font-size="12" font-weight="700" letter-spacing="1.2">03 / OUTPUT</text>
+      <text x="24" y="76" fill="#F4F0E8" font-family="IBM Plex Mono,monospace" font-size="14">home.generated.css</text>
+      <text x="24" y="103" fill="#F4F0E8" font-family="IBM Plex Mono,monospace" font-size="14">home.generated.html</text>
+      <text x="24" y="130" fill="#F4F0E8" font-family="IBM Plex Mono,monospace" font-size="14">HomeLayout.generated.kt</text>
+    </g>
+  </g>
+</svg>
