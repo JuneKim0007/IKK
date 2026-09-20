@@ -1,4 +1,4 @@
-// GENERATED FROM contract cp_016 — DO NOT EDIT.
+// GENERATED FROM contract cp_029 — DO NOT EDIT.
 package com.ikk.ui.generated
 
 import androidx.compose.foundation.Canvas
@@ -74,7 +74,8 @@ fun HomeLayoutGenerated(
                   .rel(0f, 0f, 1f, 1f)
                   .zIndex(0f)
                   .alpha(1f)
-                  .background(Color(0xFFF4F0E8), RoundedCornerShape(0.dp)),
+                  .background(Color(0xFFE8E6F0), RoundedCornerShape(0.dp))
+                  .border(2.dp, Color(0xFFE8E6F0), RoundedCornerShape(0.dp)),
         )
 
         Box(
@@ -110,10 +111,10 @@ fun HomeLayoutGenerated(
         Box(
             modifier =
                 Modifier
-                  .rel(0.08f, 0.5f, 0.12f, 0.068f)
+                  .rel(0.08f, 0.501f, 0.12f, 0.068f)
                   .zIndex(3f)
                   .alpha(1f)
-                  .background(Color(0xFFB7E36D), IkkOvalShape),
+                  .background(Color(0xFFC2410C), IkkOvalShape),
         )
 
         Box(
@@ -122,7 +123,7 @@ fun HomeLayoutGenerated(
                   .rel(0.84f, 0.07f, 0.08f, 0.048f)
                   .zIndex(4f)
                   .alpha(1f)
-                  .background(Color(0xFF3F5CE1), IkkTriangleShape),
+                  .background(Color(0xFFC2410C), IkkTriangleShape),
         )
 
         imageContent(
@@ -134,7 +135,7 @@ fun HomeLayoutGenerated(
               .zIndex(5f)
               .alpha(1f)
               .clip(RoundedCornerShape(20.dp))
-              .background(Color(0xFF181B1A), RoundedCornerShape(20.dp)),
+              .background(Color(0xFFC2410C), RoundedCornerShape(20.dp)),
         )
 
     }

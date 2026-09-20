@@ -256,7 +256,7 @@ demo-reset:
 # and then owns its copy. Reset underneath an open editor and the two
 # disagree until you reload -- and the editor's next flush overwrites the
 # reset. Frontend last is what keeps them agreeing.
-demo: $(RUN) backend emulator demo-reset android-sync frontend
+demo: $(RUN) backend demo-reset android-sync frontend
 	@echo ""
 	@echo "  editor    $(EDITOR_URL)"
 	@echo "  emulator  same contract, installed and running"
@@ -270,12 +270,17 @@ demo: $(RUN) backend emulator demo-reset android-sync frontend
 PROJECT     ?= demo
 ANDROID_GEN := apps/android/app/src/main/kotlin/com/ikk/ui/generated/HomeLayout.generated.kt
 
-# Contract -> generated Compose -> APK on the device.
+# Contract -> generated Compose -> APK on the device. This is the whole
+# "click Generate" step, and it is the one to re-run all through a demo.
+#
+# Depends on `emulator`, which is idempotent: it boots the AVD only when
+# nothing is attached, so the cold boot is paid once per session and every
+# later run is just regenerate + reinstall (a few seconds). Do not run
+# `make down` between takes -- that kills the device and buys the boot again.
 #
 # Deterministic end to end: the contract fully determines the Kotlin, so a
-# colour change is a regeneration, not a decision. Nothing in this path needs
-# a model. Run `make backend` and edit in the web editor first.
-android-sync: $(RUN)
+# colour change is a regeneration, not a decision. Nothing here needs a model.
+android-sync: $(RUN) emulator
 	@echo "-> generate"
 	@curl -sf -X POST http://127.0.0.1:$(BACKEND_PORT)/v1/projects/$(PROJECT)/generate \
 		-o $(RUN)/generate.json \
