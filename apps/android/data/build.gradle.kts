@@ -26,5 +26,10 @@ kotlin {
 }
 
 dependencies {
+    // Contract types are read from here, never redeclared. Pure Kotlin/JVM —
+    // no Android dependency on either side of this edge. See
+    // docs/architecture/repository-layout.md and apps/android/README.md.
+    api(project(":packages:design-contract"))
+
     testImplementation(libs.junit)
 }

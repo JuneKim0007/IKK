@@ -102,7 +102,12 @@ async function boot() {
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); store.remove(node.id); }
   });
 
+  let lastSelection = store.selectedId;
   const paint = () => {
+    if (store.selectedId !== lastSelection) {
+      lastSelection = store.selectedId;
+      toolbar.dismissPopovers();
+    }
     canvas.render(store);
     layers.render(store);
     inspector.render(store);

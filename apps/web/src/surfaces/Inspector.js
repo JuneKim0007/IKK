@@ -1,8 +1,34 @@
 import { BaseElement } from '../core/BaseElement.js';
-import { PALETTE, textPayload, normalizeColor, capabilities } from '../contract/schema.js';
+import { PALETTE, textPayload, normalizeColor, capabilities, REFERENCE } from '../contract/schema.js';
 
 /** Properties for the selection. Controls only appear when the node has them. */
 export class Inspector extends BaseElement {
+  constructor(id, opts) {
+    super(id, opts);
+    /**
+     * Display unit. The contract always stores percentages — §5 is normative
+     * and relative geometry is the whole point. This only changes what the
+     * fields show, so an Android developer can read the dp they will see in
+     * the generated Compose without the wire format moving.
+     * @type {'%'|'dp'}
+     */
+    this.unit = 'dp';
+  }
+
+  /** percentage -> displayed value */
+  _out(v, axis) {
+    if (this.unit === '%') return Math.round(v * 10) / 10;
+    const base = axis === 'x' ? REFERENCE.w : REFERENCE.h;
+    return Math.round((v / 100) * base);
+  }
+
+  /** displayed value -> percentage */
+  _in(v, axis) {
+    if (this.unit === '%') return v;
+    const base = axis === 'x' ? REFERENCE.w : REFERENCE.h;
+    return Math.round((v / base) * 1000) / 10;
+  }
+
   createElement() {
     const aside = document.createElement('aside');
     aside.className = 'panel panel-right';
@@ -42,7 +68,7 @@ export class Inspector extends BaseElement {
     wrap.innerHTML = `<span>${label}</span>`;
     const input = document.createElement('input');
     input.type = 'number';
-    input.step = '0.1';
+    input.step = this.unit === 'dp' ? '1' : '0.1';
     input.value = String(value);
     input.addEventListener('change', () => onChange(Number(input.value)));
     wrap.appendChild(input);
@@ -51,16 +77,57 @@ export class Inspector extends BaseElement {
 
   _geometry(store, node) {
     const g = this._group('Position & size');
-    const grid = document.createElement('div');
-    grid.className = 'grid-2';
-    const set = (k) => (v) => store.update(node.id, (n) => { n.rect = { ...n.rect, [k]: v }; });
-    grid.append(
-      this._number('X', node.rect.x, set('x')),
-      this._number('W', node.rect.w, set('w')),
-      this._number('Y', node.rect.y, set('y')),
-      this._number('H', node.rect.h, set('h')),
+
+    // Unit toggle. dp is what an Android developer reads in the generated
+    // Compose; % is what the contract stores. Neither is more true, so the
+    // editor shows whichever the person is thinking in.
+    const units = document.createElement('div');
+    units.className = 'segmented units';
+    for (const u of ['dp', '%']) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = u;
+      b.setAttribute('aria-pressed', String(this.unit === u));
+      b.setAttribute('aria-label', `Show values in ${u === 'dp' ? 'density-independent pixels' : 'percent'}`);
+      b.addEventListener('click', () => { this.unit = u; this.render(store); });
+      units.appendChild(b);
+    }
+    g.querySelector('h3').after(units);
+
+    const set = (k, axis) => (v) =>
+      store.update(node.id, (n) => { n.rect = { ...n.rect, [k]: this._in(v, axis) }; });
+
+    // Position and size are read as pairs, so they are laid out as pairs.
+    const pos = document.createElement('div');
+    pos.className = 'pair';
+    pos.innerHTML = '<span class="pair-label">Position</span>';
+    const posFields = document.createElement('div');
+    posFields.className = 'pair-fields';
+    posFields.append(
+      this._number('X', this._out(node.rect.x, 'x'), set('x', 'x')),
+      this._number('Y', this._out(node.rect.y, 'y'), set('y', 'y')),
     );
-    g.appendChild(grid);
+    pos.appendChild(posFields);
+
+    const size = document.createElement('div');
+    size.className = 'pair';
+    size.innerHTML = '<span class="pair-label">Size</span>';
+    const sizeFields = document.createElement('div');
+    sizeFields.className = 'pair-fields';
+    sizeFields.append(
+      this._number('W', this._out(node.rect.w, 'x'), set('w', 'x')),
+      this._number('H', this._out(node.rect.h, 'y'), set('h', 'y')),
+    );
+    size.appendChild(sizeFields);
+
+    g.append(pos, size);
+
+    if (this.unit === 'dp') {
+      const note = document.createElement('p');
+      note.className = 'hint hint-sm';
+      note.textContent = `dp at the ${REFERENCE.w} × ${REFERENCE.h} reference viewport. Stored as %.`;
+      g.appendChild(note);
+    }
     return g;
   }
 

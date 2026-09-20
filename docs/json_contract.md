@@ -109,7 +109,7 @@ Every component, whatever its type, has this shape:
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | `id` | string | ✔ | — | UUID. Stable, never reused, never shown |
-| `type` | enum | ✔ | — | `rect` · `ellipse` · `triangle` · `text` · `image` |
+| `type` | enum | ✔ | — | `rect` · `ellipse` · `triangle` · `line` · `text` · `image` |
 | `name` | string | ✔ | — | Designer-facing. Unique within scope. §4.1 |
 | `z` | int | ✔ | — | Paint order, ascending. Ties broken by `id` |
 | `visible` | bool | ✔ | `true` | Hidden nodes stay in the contract and are **not** emitted |
@@ -369,15 +369,16 @@ than discovering it in a demo.
 
 ## 10 · Per-type field applicability
 
-| Field | rect | ellipse | triangle | text | image |
-|---|---|---|---|---|---|
-| `rect` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| `fill` | ✔ | ✔ | ✔ | null | placeholder colour |
-| `stroke` | ✔ | ✔ | see below | null | ✔ |
-| `radius` | number | `"50%"` | `0` | `0` | number |
-| `text` | optional | optional | optional | **required** | null |
-| `source` | — | — | — | — | nullable — `null` is an unfilled frame |
-| `contentScale` | — | — | — | — | **required** |
+| Field | rect | ellipse | triangle | line | text | image |
+|---|---|---|---|---|---|---|
+| `rect` | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `fill` | ✔ | ✔ | ✔ | null | null | placeholder colour |
+| `stroke` | ✔ | ✔ | see below | **required** | null | ✔ |
+| `radius` | number | `"50%"` | `0` | `0` | `0` | number |
+| `text` | optional | optional | optional | null | **required** | null |
+| `line` | — | — | — | `orientation` | — | — |
+| `source` | — | — | — | — | — | nullable — `null` is an unfilled frame |
+| `contentScale` | — | — | — | — | — | **required** |
 
 ### Triangle
 
@@ -394,6 +395,25 @@ border away, so a bordered triangle renders with no visible outline, while
 Compose's `.border(shape)` follows the path. Rather than let the two surfaces
 disagree, v1 declares `stroke` **must be `null`** on a triangle (rule V16).
 Outlined triangles need a drawn path on both sides and are deferred.
+
+### Line
+
+A straight stroke across the node's box, corner to corner. It has no fill, no
+text, and no radius — it is drawn, not painted. `stroke` is **required**;
+there is nothing to render without one (rule V17).
+
+```json
+"line": { "orientation": "topLeftToBottomRight" }
+```
+
+`orientation` is `topLeftToBottomRight` · `bottomLeftToTopRight` — which
+diagonal of the box the line runs along. Arbitrary angles are deferred; see
+`docs/roadmap-frontend.md` F1.23.
+
+| Target | Mapping |
+|---|---|
+| CSS | `background: linear-gradient(...)` — a hard-edged diagonal band the width of `stroke.width`, not an SVG element. Keeps the line on the same box model as every other node, so selection, nudge and resize need no special case |
+| Compose | `Canvas { drawLine(...) }` along the same diagonal |
 
 A `type: "image"` node adds:
 
@@ -455,7 +475,7 @@ A contract is valid when all hold. Reject, do not repair.
 | # | Rule |
 |---|---|
 | V1 | `schemaVersion == 1` |
-| V2 | Every map key matches `^(rect\|ellipse\|triangle\|text\|image)_[A-Za-z0-9]+$` |
+| V2 | Every map key matches `^(rect\|ellipse\|triangle\|line\|text\|image)_[A-Za-z0-9]+$` |
 | V3 | Every `id` is unique within the document |
 | V4 | `opacity` ∈ [0.0, 1.0] |
 | V5 | `rect.w > 0` and `rect.h > 0` |
@@ -470,6 +490,7 @@ A contract is valid when all hold. Reject, do not repair.
 | V14 | `name` is unique within its parent scope — the screen in v1 |
 | V15 | `key` equals `{type}_{slug(name)}` for its node |
 | V16 | `type == "triangle"` ⟹ `stroke` is `null` and `radius` is `0` |
+| V17 | `type == "line"` ⟹ `fill` is `null` and `stroke` is non-null with `stroke.width > 0` |
 
 V11 is the one people want to relax. Do not. A field one implementation writes
 and another silently drops is a divergence that only shows up at a demo.
@@ -630,3 +651,4 @@ bug.
 | Version | Change |
 |---|---|
 | 1 | Initial. rect, ellipse, text, image; relative geometry; per-node sync |
+| 1 | `triangle` (V16) and `line` (V17) added to the node-type enum. Still `schemaVersion 1` — this row exists because those two types shipped in Kotlin, JS and `docs/fixtures/` before this document was updated to match; the code was never wrong, this file was |
