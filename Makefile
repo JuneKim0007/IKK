@@ -1,8 +1,8 @@
-# IKK — one machine, two surfaces, no database.
+# IKK — one machine, two surfaces, one Kotlin backend.
 #
 #   make up        start backend + frontend
 #   make down      stop both
-#   make test      every suite: Kotlin, Node codegen, Python
+#   make test      every suite: Kotlin, Node codegen, Web, backend
 #
 # Ports: frontend 5173, backend 8000. Override with FRONTEND_PORT / BACKEND_PORT.
 
@@ -11,13 +11,11 @@ FRONTEND_PORT ?= 5173
 BACKEND_PORT  ?= 8000
 EDITOR        := apps/web/index.html
 EDITOR_URL     = http://localhost:$(FRONTEND_PORT)/$(EDITOR)?api=http://127.0.0.1:$(BACKEND_PORT)
-VENV          := apps/backend/.venv
-PY            := $(VENV)/bin/python
 RUN           := .run
 
 .DEFAULT_GOAL := help
 .PHONY: help up down frontend backend stop-frontend stop-backend status logs \
-        test test-kotlin test-codegen test-web test-backend e2e generate check clean venv \
+        test test-kotlin test-codegen test-web test-backend e2e generate check clean \
         docker-build docker-run
 
 ## ---------------------------------------------------------------- help
@@ -41,7 +39,7 @@ help:
 	@echo ""
 	@echo "  make docker-build   build the backend image"
 	@echo "  make docker-run     run it on :$(BACKEND_PORT)"
-	@echo "  make clean          stop everything, drop venv and logs"
+	@echo "  make clean          stop everything and remove build output/logs"
 	@echo ""
 
 ## ---------------------------------------------------------------- run
@@ -49,7 +47,7 @@ help:
 up: backend frontend
 	@echo ""
 	@echo "  editor   $(EDITOR_URL)"
-	@echo "  backend  http://localhost:$(BACKEND_PORT)/docs"
+	@echo "  backend  http://localhost:$(BACKEND_PORT)/healthz"
 	@echo ""
 	@echo "  make down   to stop"
 
@@ -70,16 +68,15 @@ frontend: $(RUN) stop-frontend
 		|| { echo "  FAILED — see $(RUN)/frontend.log"; exit 1; }
 	@-command -v open >/dev/null && open "$(EDITOR_URL)" >/dev/null 2>&1 || true
 
-backend: venv $(RUN) stop-backend
+backend: $(RUN) stop-backend
 	@echo "→ backend on :$(BACKEND_PORT)"
-	@cd apps/backend && ../../$(VENV)/bin/uvicorn app.main:app \
-		--host 127.0.0.1 --port $(BACKEND_PORT) --reload \
-		> ../../$(RUN)/backend.log 2>&1 & echo $$! > $(RUN)/backend.pid
+	@./gradlew :apps:backend:bootRun --args='--server.port=$(BACKEND_PORT)' \
+		> $(RUN)/backend.log 2>&1 & echo $$! > $(RUN)/backend.pid
 	@for i in $$(seq 1 40); do \
 		curl -sf http://127.0.0.1:$(BACKEND_PORT)/healthz >/dev/null && break || sleep 0.25; \
 	done
 	@curl -sf http://127.0.0.1:$(BACKEND_PORT)/healthz \
-		&& echo "  ready → http://localhost:$(BACKEND_PORT)/docs" \
+		&& echo "  ready → http://localhost:$(BACKEND_PORT)/healthz" \
 		|| { echo "  FAILED — see $(RUN)/backend.log"; tail -20 $(RUN)/backend.log; exit 1; }
 
 ## ---------------------------------------------------------------- stop
@@ -87,9 +84,8 @@ backend: venv $(RUN) stop-backend
 down: stop-frontend stop-backend
 	@echo "stopped"
 
-# Killing the pid is not enough: uvicorn --reload runs a reloader plus a child,
-# and the port stays bound for a moment after. Wait for it to actually free or
-# the next start races and dies with EADDRINUSE.
+# Wait until the port is actually free so the next start cannot race the old
+# process and fail with EADDRINUSE.
 define free_port
 	@-lsof -ti tcp:$(1) 2>/dev/null | xargs kill 2>/dev/null || true
 	@for i in $$(seq 1 40); do \
@@ -116,17 +112,6 @@ status:
 logs:
 	@tail -f $(RUN)/backend.log $(RUN)/frontend.log
 
-## ---------------------------------------------------------------- python
-
-venv: $(VENV)/.installed
-
-$(VENV)/.installed: apps/backend/pyproject.toml
-	@echo "→ python env"
-	@python3 -m venv $(VENV)
-	@$(PY) -m pip install -q --upgrade pip
-	@cd apps/backend && ../../$(VENV)/bin/pip install -q -e ".[dev]"
-	@touch $(VENV)/.installed
-
 ## ---------------------------------------------------------------- test
 
 test: test-kotlin test-codegen test-web test-backend
@@ -135,7 +120,8 @@ test: test-kotlin test-codegen test-web test-backend
 
 test-kotlin:
 	@echo "→ kotlin"
-	@./gradlew -q test
+	@./gradlew -q :packages:design-contract:test \
+		:apps:android:data:testDebugUnitTest :apps:android:app:testDebugUnitTest
 
 test-codegen:
 	@echo "→ codegen"
@@ -145,9 +131,9 @@ test-web:
 	@echo "→ web"
 	@cd apps/web && npm test
 
-test-backend: venv
+test-backend:
 	@echo "→ backend"
-	@cd apps/backend && ../../$(VENV)/bin/pytest -q
+	@./gradlew -q :apps:backend:test
 
 # Integrated: the contract goes in over HTTP and real artifacts come back.
 # This is the only target that proves the two halves agree at runtime.
@@ -182,5 +168,6 @@ docker-run: docker-build
 ## ---------------------------------------------------------------- clean
 
 clean: down
-	@rm -rf $(VENV) $(RUN)
+	@./gradlew clean
+	@rm -rf $(RUN)
 	@echo "cleaned"

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   ContractError,
   generateCss,
+  generateHtml,
   generateKotlin,
   normalizeContract,
 } from "./generate.mjs";
@@ -31,6 +32,20 @@ test("generates stable Web CSS from the example contract", async () => {
   assert.match(generated, /\.rect_primaryAction \{[\s\S]*width: 87\.2%;/);
   assert.match(generated, /\.image_cover \{[\s\S]*object-fit: cover;/);
   assert.match(generated, /white-space: pre-wrap/);
+});
+
+test("generates structure-only HTML and escapes authored text", async () => {
+  const contract = await exampleContract();
+  const generated = generateHtml(contract);
+  const golden = await readFile(
+    path.join(HERE, "generated", "web", "home.generated.html"),
+    "utf8",
+  );
+
+  assert.equal(generated, golden);
+  assert.doesNotMatch(generated, /style=/);
+  assert.match(generated, /class="ikk-node rect_primaryAction"/);
+  assert.match(generated, /class="ikk-node image_cover"/);
 });
 
 test("generates stable Compose Kotlin from the same contract", async () => {
@@ -134,5 +149,19 @@ test("emits the canonical rel() from templates/rel.kt.txt verbatim, indented 8",
       generated.includes(line),
       `generated Kotlin is missing the canonical rel() line: ${JSON.stringify(line)}`,
     );
+  }
+});
+
+test("every shared valid fixture emits deterministically", async () => {
+  const fixtureDirectory = path.join(HERE, "..", "..", "docs", "fixtures", "valid");
+  const files = (await readdir(fixtureDirectory)).filter((name) => name.endsWith(".json")).sort();
+  assert.ok(files.length > 0, "expected shared contract fixtures");
+
+  for (const name of files) {
+    const source = JSON.parse(await readFile(path.join(fixtureDirectory, name), "utf8"));
+    const contract = normalizeContract(source);
+    assert.equal(generateCss(contract), generateCss(contract), `${name}: CSS drifted`);
+    assert.equal(generateHtml(contract), generateHtml(contract), `${name}: HTML drifted`);
+    assert.equal(generateKotlin(contract), generateKotlin(contract), `${name}: Kotlin drifted`);
   }
 });

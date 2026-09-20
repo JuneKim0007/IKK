@@ -6,9 +6,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * The shared corpus. Kotlin, TypeScript and Python all run these same files.
- * If this diverges from codegen/generate.test.mjs or the Python suite, the
- * three implementations have drifted — which is the whole reason it exists.
+ * The shared corpus. Kotlin owns validation; the backend reuses this module,
+ * and the Node emitter runs every valid fixture for deterministic output.
  */
 class CorpusTest {
 

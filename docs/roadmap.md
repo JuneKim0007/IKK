@@ -5,7 +5,7 @@ Split by owner so two people are not editing one file.
 | File | Owner | Covers |
 |---|---|---|
 | [roadmap-frontend.md](roadmap-frontend.md) | web + Android | editors, client sync, the parity gate |
-| [roadmap-backend.md](roadmap-backend.md) | JVM | contract service, generate, the Java port |
+| [roadmap-backend.md](roadmap-backend.md) | Kotlin/JVM | contract service and generation |
 
 ## Two rules for both files
 
@@ -21,9 +21,9 @@ repo stops being trustworthy, and git already keeps the history.
 
 | | |
 |---|---|
-| Contract model | Kotlin + Python, 52 tests green |
-| Codegen | `packages/codegen`, emits `.kt` and `.css` |
-| Fixture corpus | 3 valid, 12 invalid, run by every implementation |
-| Backend | Python reference; Java port in progress |
+| Contract model | Kotlin/JVM, reused directly by Android and backend |
+| Codegen | `packages/codegen`, emits `.kt`, `.css`, and `.html` |
+| Fixture corpus | 3 valid, 19 invalid; Kotlin/backend boundaries enforce it |
+| Backend | Kotlin/Spring Boot; Python reference removed |
 | Web editor | in progress — `apps/web` |
 | Android editor | not started |

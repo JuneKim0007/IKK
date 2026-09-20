@@ -130,6 +130,7 @@ export class Store {
     if (!node) return;
     this._pushUndo();
     delete this.contract.components[this.keyOf(node)];
+    this.dirtyIds.add(id);
     if (this.selectedId === id) this.selectedId = null;
     this._emit();
   }
@@ -142,7 +143,12 @@ export class Store {
   undo() {
     const prev = this._undo.pop();
     if (!prev) return false;
+    const affectedIds = new Set([
+      ...this.nodes().map((node) => node.id),
+      ...Object.values(prev.components).map((node) => node.id),
+    ]);
     this.contract = prev;
+    for (const id of affectedIds) this.dirtyIds.add(id);
     this.selectedId = null;
     this._emit();
     return true;

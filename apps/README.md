@@ -7,6 +7,7 @@ packages; shared packages must never depend on an app.
 |---|---|
 | `android/` | Native Android application, Android data layer, and future editor feature |
 | `web/` | Browser-based editor and renderer |
+| `backend/` | Kotlin/JVM Spring Boot contract, sync, persistence, and generation API |
 
 Android and Web have separate UI implementations. They converge through the
 contract in `packages/design-contract` and `docs/json_contract.md`, not through

@@ -1,0 +1,7 @@
+.git
+.gradle
+.idea
+.run
+**/build
+apps/backend/data
+node_modules

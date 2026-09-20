@@ -300,13 +300,13 @@ Every synced component serialises into the same wrapper, whatever its type:
   "schemaVersion": 1,
   "version": 12,
   "updatedAt": "2026-09-20T14:22:31Z",
-  "checksum": "sha256:…",
   "payload": { }
 }
 ```
 
-`checksum` covers `payload` only. It lets the backend reject a torn write and
-lets the client skip a no-op push.
+Clients do not send a checksum. After accepting a node, the server returns the
+SHA-256 checksum of the canonical `payload`; clients may use that returned
+value to skip a later no-op push.
 
 ### Policies
 
@@ -327,7 +327,9 @@ the debounce is broken.
 
 ### Conflict resolution
 
-Per-node last-write-wins on `updatedAt`, with `version` breaking ties.
+Per-node optimistic concurrency uses a monotonic `version`: an incoming version
+must be strictly greater than the stored version. `updatedAt` is metadata and
+must match the payload, but it is not a cross-device clock or conflict arbiter.
 
 Node-level granularity is the whole point: two people editing different
 components never conflict, and that is the only realistic multi-user case for
@@ -356,10 +358,13 @@ Not a DesignNode. Not in the contract. Not rendered by generated output.
 ```
 GenerateAction : ActionControl
 ├── enabled when  : contract is clean (no pending sync) and validates
-├── run()         : POST /projects/{id}/generate   body = current contract
-└── returns       : { checkpoint, artifacts: [ "Home.generated.kt",
-                                               "home.generated.css",
-                                               "home.generated.html" ] }
+├── run()         : POST /v1/projects/{id}/generate
+│                   body = { targets: [ "kotlin", "css", "html" ] }
+└── returns       : { checkpoint, artifacts: [
+                        { name: "HomeLayout.generated.kt", target: "kotlin", bytes: ... },
+                        { name: "home.generated.css", target: "css", bytes: ... },
+                        { name: "home.generated.html", target: "html", bytes: ... }
+                     ] }
 ```
 
 **Guard it on a clean sync queue.** If `[Generate]` fires while components are

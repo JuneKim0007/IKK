@@ -27,4 +27,5 @@ rootProject.name = "IKK"
 // lives under packages/. The Gradle paths intentionally mirror the folders.
 include(":apps:android:app")
 include(":apps:android:data")
+include(":apps:backend")
 include(":packages:design-contract")

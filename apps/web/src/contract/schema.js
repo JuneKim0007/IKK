@@ -2,8 +2,8 @@
  * TypeScript-free mirror of docs/json_contract.md.
  *
  * That document is normative. If this file disagrees with it, this file is
- * wrong. Kotlin (`packages/design-contract`) and the Java backend hold the
- * same model; `docs/fixtures/` is the corpus all three run.
+ * wrong. The Kotlin/JVM backend consumes `packages/design-contract` directly;
+ * `docs/fixtures/` is the shared boundary corpus.
  */
 
 export const SCHEMA_VERSION = 1;

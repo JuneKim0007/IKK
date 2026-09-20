@@ -19,8 +19,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Unit tests
-        run: ./gradlew test
+      - name: Android and contract tests
+        run: >-
+          ./gradlew
+          :packages:design-contract:test
+          :apps:android:data:testDebugUnitTest
+          :apps:android:app:testDebugUnitTest
 
       - name: Assemble debug
-        run: ./gradlew assembleDebug
+        run: ./gradlew :apps:android:app:assembleDebug
