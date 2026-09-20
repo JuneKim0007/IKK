@@ -27,7 +27,7 @@ export class Toolbar extends BaseElement {
     const bar = document.createElement('header');
     bar.className = 'toolbar';
     bar.innerHTML = `
-      <span class="logo">IKK</span>
+      <span class="brand"><strong class="logo">IKK</strong><span class="brand-meta">Contract studio</span></span>
       <div class="tools">
         <button class="tool" data-tool="move" aria-pressed="true" title="Move (V)" aria-label="Move">${icon('move')}</button>
         <span class="toolgroup">
@@ -43,8 +43,8 @@ export class Toolbar extends BaseElement {
       <span class="spacer"></span>
       <span class="sync" id="syncStatus" title="sync status">offline</span>
       <button class="btn" id="undoBtn">Undo</button>
-      <button class="btn" id="deleteBtn">Delete</button>
-      <button class="btn btn-primary" id="generateBtn">Generate</button>
+      <button class="btn btn-quiet" id="deleteBtn">Delete</button>
+      <button class="btn btn-primary" id="generateBtn"><span>Generate</span><span class="btn-arrow">↗</span></button>
     `;
     this._bind(bar);
     return bar;

@@ -1,30 +1,68 @@
-# IKK
+<p align="center">
+  <img src="docs/assets/ikk-hero.svg" alt="IKK Contract Studio — one source, every surface" width="100%">
+</p>
 
-A design tool whose output is a **contract**, not a picture.
+<h1 align="center">IKK</h1>
 
-A designer draws a screen. A developer gets `.css` and `.kt` generated from the
-same JSON the designer was editing. Neither hands the other a file — they hold
-two views of one object.
+<p align="center">
+  <strong>A visual editor that outputs a contract, not a screenshot.</strong><br>
+  One versioned JSON document becomes deterministic CSS, HTML, and Jetpack Compose.
+</p>
 
-Hackathon scope: a browser editor and an Android/Compose client target one JSON
-contract. A Kotlin/JVM Spring Boot backend reuses the Kotlin contract package,
-persists it in H2 or PostgreSQL, and invokes one deterministic Node.js emitter
-for Web CSS/HTML and Android Compose Kotlin. No model call is needed to convert
-the contract into code.
+<p align="center">
+  <code>Kotlin / Spring Boot</code>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <code>Vanilla Web Components</code>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <code>Jetpack Compose</code>&nbsp;&nbsp;·&nbsp;&nbsp;
+  <code>H2 / PostgreSQL</code>
+</p>
 
-## Where this stands
+## The 60-second demo
+
+```bash
+git clone https://github.com/JuneKim0007/IKK.git
+cd IKK
+make up
+```
+
+Open `http://localhost:5173/apps/web/index.html?api=http://127.0.0.1:8000`,
+move or restyle a node, then press **Generate**. The backend first synchronizes
+the contract, cuts an immutable checkpoint, and stores three artifacts:
+
+```text
+home.generated.css       Web geometry and visual styles
+home.generated.html      structure-only markup
+HomeLayout.generated.kt  Jetpack Compose layout
+```
+
+Fetch any generated artifact directly:
+
+```bash
+curl http://127.0.0.1:8000/v1/projects/demo/artifacts/home.generated.css
+```
+
+| What judges can verify | Why it matters |
+|---|---|
+| Move one node and regenerate | Web and Android outputs change from the same values |
+| Run generation twice | Byte-identical output; no model randomness |
+| Inspect a checkpoint | The exact design that produced the code is preserved |
+| Break a contract fixture | Web, backend, Kotlin, and codegen reject the same invalid input |
+
+<p align="center">
+  <img src="docs/assets/contract-flow.svg" alt="Visual editor to JSON contract to generated Web and Android code" width="100%">
+</p>
+
+## Current build
 
 | Area | State |
 |---|---|
-| JSON contract (`packages/design-contract`) | Kotlin model reused directly by the backend; fixture suite green |
-| Deterministic codegen (`packages/codegen`) | Implemented — emits `.kt`, `.css`, and structure-only `.html` |
-| Backend (`apps/backend`) | Kotlin/Spring Boot; JDBC + Flyway; H2/PostgreSQL; sync, checkpoints, assets, generation |
-| Android application | Hello World scaffold |
-| Web application | Interactive editor in `apps/web` |
-| Sync | Backend node API implemented; Web uses debounced contract sync; Android integration remains |
+| Web editor | Live canvas, drag-to-draw, inline text editing, images, layers, inspector, undo, sync |
+| JSON contract | Shared Kotlin model plus cross-language valid/invalid fixture corpus |
+| Backend | Kotlin/Spring Boot, JDBC/Flyway, checkpoints, assets, validation, artifact storage |
+| Code generation | Deterministic CSS, HTML, and Compose Kotlin emitters |
+| Android | Compose source output is generated; the Android editor itself remains outside the MVP demo |
 
-Authority order is in [docs/README.md](docs/README.md): the JSON contract wins
-over the component model, the roadmap, and the prototypes.
+The normative contract is [`docs/json_contract.md`](docs/json_contract.md).
+When prose, code, and fixtures disagree, that document and its fixtures win.
 
 ---
 
@@ -54,13 +92,10 @@ disagrees with that file, the implementation is wrong.
 
 ```mermaid
 flowchart TB
-    subgraph edit["Authoring surfaces"]
-        WEB["Web editor<br/>HTML · CSS · JS"]
-        AND["Android app<br/>Compose"]
-    end
+    WEB["Web editor<br/>canvas · layers · inspector"]
 
     subgraph srv["Kotlin/JVM Spring Boot backend"]
-        CONTRACT[("contract store<br/>per-node, versioned")]
+        CONTRACT[("versioned JSON<br/>H2 / PostgreSQL")]
         GEN["Node.js emitter<br/>JSON to CSS / HTML / Kotlin"]
     end
 
@@ -69,22 +104,11 @@ flowchart TB
         KT["HomeLayout.generated.kt"]
     end
 
-    AGENT["AI agent<br/>registered tools"]
-    HAND["Hand-written code<br/>Home.kt · app.js"]
-
-    WEB -- "dirty nodes · debounce + 5s tick" --> CONTRACT
-    CONTRACT -- "reconcile" --> WEB
-    AND -- "dirty nodes" --> CONTRACT
-    CONTRACT -- "reconcile" --> AND
-
+    WEB -- "PUT contract · 400 ms debounce" --> CONTRACT
     WEB == "POST /v1/projects/{id}/generate" ==> GEN
     CONTRACT --> GEN
     GEN --> CSS
     GEN --> KT
-    CSS --> AGENT
-    KT --> AGENT
-    AGENT --> HAND
-    HAND -. "references global names" .-> CSS
 ```
 
 ---
@@ -97,14 +121,14 @@ driven by different triggers**.
 | | Contract clock | Artifact clock |
 |---|---|---|
 | Trigger | an edit | the `[Generate]` button |
-| Cadence | debounce ~400 ms, reconcile every 5 s | only when a human asks |
-| Granularity | one node | the whole screen, plus a checkpoint |
-| Writes | versioned node rows | immutable checkpoint + generated artifact records |
-| If it goes wrong | stale canvas, fixed by the next tick | wrong code committed |
+| Cadence | debounce ~400 ms | only when a human asks |
+| Granularity | the working contract | the whole screen, plus a checkpoint |
+| Writes | normalized node rows | immutable checkpoint + artifact records |
+| Guard | retry a stale checkpoint once | refuse while the editor is dirty |
 
-If the 5-second tick also generated code, every keystroke would cut a
-checkpoint and rewrite files underneath whoever was editing them. Generation
-has to be an *act*, not a side effect.
+If synchronization also generated code, every drag or keystroke would cut a
+checkpoint and rewrite files underneath the developer. Generation has to be an
+*act*, not a side effect.
 
 ```mermaid
 sequenceDiagram
@@ -117,12 +141,8 @@ sequenceDiagram
     Note over D,B: contract clock — continuous
     D->>E: drag a rectangle
     E->>E: mark node dirty, bump version
-    E-->>B: PUT /v1/projects/{id}/nodes (400ms after last edit)
+    E-->>B: PUT /v1/projects/{id}/contract (400ms after last edit)
     B-->>E: 200
-    loop every 5s
-        E->>B: GET /v1/projects/{id}/contract
-        B-->>E: current contract
-    end
 
     Note over D,A: artifact clock — discrete
     D->>E: click [Generate]
@@ -138,20 +158,6 @@ still in flight, the backend generates from a contract that is behind the
 screen. The user sees output that does not match their canvas and reports it as
 the generator being broken, when it is a sync bug. One boolean prevents an hour
 of debugging the wrong thing.
-
-### Why not cron
-
-`cron` cannot express 5 seconds — its floor is one minute. What the sync needs
-is two client-side policies, not a scheduler:
-
-- **Debounce (~400 ms after the last edit)** — this is what makes it feel live.
-- **Interval reconcile (5 s)** — a safety net that catches dropped pushes and
-  pulls the other surface's changes.
-
-A bare 5-second poll with no debounce is the worst of both: up to 5 s of
-latency on your own edit, and a request every 5 s from an idle tab.
-
----
 
 ## The generate route
 
@@ -177,7 +183,7 @@ Content-Type: application/json
 That is a mutation with side effects, so browser prefetching must not trigger it.
 
 The backend invokes `packages/codegen`; it does not implement a second emitter.
-Both clients therefore receive output from the same deterministic implementation.
+Both targets therefore receive output from the same deterministic implementation.
 
 ---
 
@@ -187,31 +193,31 @@ One contract node, two targets. Full worked example in
 [`docs/json_contract.md` §14](docs/json_contract.md).
 
 ```json
-"text_2": {
-  "id": "n2", "type": "text", "z": 1,
-  "rect": { "x": 7.5, "y": 11.1, "w": 69.3, "h": 5.1, "unit": "%" },
+"text_statement": {
+  "id": "n2", "type": "text", "name": "Statement", "z": 1,
+  "rect": { "x": 8.0, "y": 13.0, "w": 84.0, "h": 27.0, "unit": "%" },
   "fill": null,
-  "text": { "value": "Good morning", "size": 26, "color": "#FFFFFF",
-            "align": "start", "weight": "semibold" },
-  "version": 7
+  "text": { "value": "One source.\nEvery surface.", "size": 42,
+            "color": "#181B1A", "align": "start", "weight": 600 },
+  "version": 1
 }
 ```
 
 ```css
 /* GENERATED FROM contract cp_006 — DO NOT EDIT */
-.text_2 {
-  left: 7.5%; top: 11.1%; width: 69.3%; height: 5.1%;
-  color: #FFFFFF; font-size: 26px; font-weight: 600;
-  line-height: 1.3; text-align: left;
+.text_statement {
+  left: 8%; top: 13%; width: 84%; height: 27%;
+  color: #181B1A; font-size: 42px; font-weight: 600;
+  line-height: 46px; text-align: left;
 }
 ```
 
 ```kotlin
 // GENERATED FROM contract cp_006 — DO NOT EDIT
-Box(Modifier.rel(0.075f, 0.111f, 0.693f, 0.051f),
+Box(Modifier.rel(0.08f, 0.13f, 0.84f, 0.27f),
     contentAlignment = Alignment.CenterStart) {
-  Text("Good morning", color = Color(0xFFFFFFFF),
-       fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
+  Text("One source.\nEvery surface.", color = Color(0xFF181B1A),
+       fontSize = 42.sp, fontWeight = FontWeight.SemiBold)
 }
 ```
 
@@ -245,21 +251,21 @@ Two consequences, both deliberate:
 
 ---
 
-## Where the AI agent fits
+## Where an AI agent fits next
 
-The agent does not look at a screenshot and guess at a layout. It receives
+An integration agent does not need to look at a screenshot and guess at a layout. It receives
 **typed input**: a contract it can parse and generated files with known names.
 Its job is wiring behaviour onto fixed geometry — a far smaller and far more
 reliable problem than "build the UI".
 
-| Tool | Returns |
+| Proposed tool | Returns |
 |---|---|
 | `read_contract(screen)` | the contract JSON — node ids, types, geometry, text |
 | `list_artifacts(checkpoint)` | generated file paths and the global names in them |
 | `write_impl(path, source)` | writes a hand-written sibling; refuses any `*.generated.*` path |
 
-The refusal in `write_impl` is the whole safety model. The generated/authored
-boundary is enforced by the tool, not by asking the agent nicely.
+The planned refusal in `write_impl` would enforce the generated/authored
+boundary in code, rather than relying on the agent to remember it.
 
 ---
 
@@ -271,9 +277,9 @@ Targets are fixed. This is not a plugin system.
 |---|---|---|
 | Web output | HTML + CSS (+ JS for behaviour) | React, Tailwind, SCSS |
 | Android output | Kotlin + Compose | XML layouts, Views |
-| Node types | rect, ellipse, text, image | groups, components, variants |
+| Node types | rect, ellipse, triangle, line, text, image | groups, components, variants |
 | Layout | relative geometry only | flex, constraints, auto-layout |
-| Sync | per-node monotonic versions (higher version wins) | operational transform, CRDTs, presence |
+| Sync | debounced full-contract replace; per-node versioned API available | operational transform, CRDTs, presence |
 | Data | one screen per project, H2/PostgreSQL, optional bearer token | roles, CRDTs, hosted multi-tenancy |
 
 Cut order if time runs out, from [`docs/roadmap.md`](docs/roadmap.md) — each

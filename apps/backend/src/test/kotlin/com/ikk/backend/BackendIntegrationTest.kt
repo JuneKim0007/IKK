@@ -70,13 +70,13 @@ class BackendIntegrationTest {
 
         mockMvc.perform(get("/v1/projects/{projectId}/contract", projectId))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.components.rect_header.name").value("Header"))
+            .andExpect(jsonPath("$.components.rect_background.name").value("Background"))
 
         mockMvc.perform(get("/v1/projects/{projectId}/checkpoints/cp_005", projectId))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.components.rect_header.name").value("Header"))
+            .andExpect(jsonPath("$.components.rect_background.name").value("Background"))
 
-        val payload = (contract.path("components").path("rect_header") as ObjectNode).deepCopy().apply {
+        val payload = (contract.path("components").path("rect_background") as ObjectNode).deepCopy().apply {
             put("version", 4)
             put("updatedAt", "2026-09-20T15:00:00Z")
         }
@@ -207,7 +207,7 @@ class BackendIntegrationTest {
             .andExpect(jsonPath("$.name").value("Home"))
 
         val editedDemo = (contract as ObjectNode).deepCopy().apply {
-            (path("components").path("rect_header") as ObjectNode).put("fill", "#112233")
+            (path("components").path("rect_background") as ObjectNode).put("fill", "#112233")
         }
         mockMvc.perform(
             put("/v1/projects/demo/contract")
@@ -218,10 +218,10 @@ class BackendIntegrationTest {
             .andExpect(jsonPath("$.checkpoint").value("cp_005"))
         mockMvc.perform(get("/v1/projects/demo/contract"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.components.rect_header.fill").value("#112233"))
+            .andExpect(jsonPath("$.components.rect_background.fill").value("#112233"))
         mockMvc.perform(get("/v1/projects/demo/checkpoints/cp_005"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.components.rect_header.fill").value("#65558F"))
+            .andExpect(jsonPath("$.components.rect_background.fill").value("#F4F0E8"))
 
         mockMvc.perform(
             put("/v1/projects/{projectId}/contract", "bad:id")

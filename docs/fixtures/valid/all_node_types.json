@@ -2,166 +2,109 @@
   "schemaVersion": 1,
   "checkpoint": "cp_005",
   "screen": "Home",
-  "reference": {
-    "w": 375,
-    "h": 667,
-    "unit": "dp"
-  },
+  "reference": { "w": 375, "h": 667, "unit": "dp" },
   "layout": "relative",
   "components": {
-    "rect_header": {
+    "rect_background": {
       "id": "n1",
       "type": "rect",
-      "name": "Header",
+      "name": "Background",
       "z": 0,
       "visible": true,
       "opacity": 1.0,
-      "rect": {
-        "x": 0.0,
-        "y": 0.0,
-        "w": 100.0,
-        "h": 27.0,
-        "unit": "%"
-      },
-      "fill": "#65558F",
+      "rect": { "x": 0.0, "y": 0.0, "w": 100.0, "h": 100.0, "unit": "%" },
+      "fill": "#F4F0E8",
       "stroke": null,
       "radius": 0,
       "text": null,
-      "version": 3,
+      "version": 1,
       "updatedAt": "2026-09-20T14:22:31Z"
     },
-    "text_title": {
+    "text_statement": {
       "id": "n2",
       "type": "text",
-      "name": "Title",
+      "name": "Statement",
       "z": 1,
       "visible": true,
       "opacity": 1.0,
-      "rect": {
-        "x": 7.5,
-        "y": 11.1,
-        "w": 69.3,
-        "h": 5.1,
-        "unit": "%"
-      },
+      "rect": { "x": 8.0, "y": 13.0, "w": 84.0, "h": 27.0, "unit": "%" },
       "fill": null,
       "stroke": null,
       "radius": 0,
       "text": {
-        "value": "Good morning",
-        "size": 26.0,
+        "value": "One source.\nEvery surface.",
+        "size": 42.0,
         "align": "start",
-        "color": "#FFFFFF",
+        "color": "#181B1A",
         "weight": 600,
-        "maxLines": null,
-        "lineHeight": null,
+        "maxLines": 2,
+        "lineHeight": 46.0,
         "fontFamily": "Roboto"
       },
-      "version": 7,
-      "updatedAt": "2026-09-20T14:25:02Z"
-    },
-    "ellipse_badge": {
-      "id": "n3",
-      "type": "ellipse",
-      "name": "Badge",
-      "z": 2,
-      "visible": true,
-      "opacity": 1.0,
-      "rect": {
-        "x": 78.4,
-        "y": 26.7,
-        "w": 14.9,
-        "h": 8.4,
-        "unit": "%"
-      },
-      "fill": "#2E8B74",
-      "stroke": null,
-      "radius": "50%",
-      "text": {
-        "value": "3",
-        "size": 22.0,
-        "align": "center",
-        "color": "#FFFFFF",
-        "weight": 600,
-        "maxLines": null,
-        "lineHeight": null,
-        "fontFamily": "Roboto"
-      },
-      "version": 1,
-      "updatedAt": "2026-09-20T14:25:02Z"
-    },
-    "image_photo": {
-      "id": "n4",
-      "type": "image",
-      "name": "Photo",
-      "z": 3,
-      "visible": true,
-      "opacity": 1.0,
-      "rect": {
-        "x": 6.4,
-        "y": 51.3,
-        "w": 87.2,
-        "h": 22.5,
-        "unit": "%"
-      },
-      "fill": null,
-      "stroke": null,
-      "radius": 14,
-      "text": null,
-      "source": {
-        "ref": "asset_12",
-        "mime": "image/png"
-      },
-      "contentScale": "crop",
-      "alt": "cover",
-      "version": 1,
-      "updatedAt": "2026-09-20T14:25:02Z"
-    },
-    "triangle_marker": {
-      "id": "n5",
-      "type": "triangle",
-      "name": "Marker",
-      "z": 4,
-      "visible": true,
-      "opacity": 1.0,
-      "rect": {
-        "x": 20.0,
-        "y": 45.0,
-        "w": 50.0,
-        "h": 25.0,
-        "unit": "%"
-      },
-      "fill": "#B4772A",
-      "stroke": null,
-      "radius": 0,
-      "text": null,
       "version": 1,
       "updatedAt": "2026-09-20T14:22:31Z"
     },
     "line_divider": {
-      "id": "n6",
+      "id": "n3",
       "type": "line",
       "name": "Divider",
+      "z": 2,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": { "x": 8.0, "y": 45.0, "w": 84.0, "h": 0.8, "unit": "%" },
+      "fill": null,
+      "stroke": { "color": "#181B1A", "width": 1.5 },
+      "radius": 0,
+      "text": null,
+      "line": { "orientation": "topLeftToBottomRight" },
+      "version": 1,
+      "updatedAt": "2026-09-20T14:22:31Z"
+    },
+    "ellipse_signal": {
+      "id": "n4",
+      "type": "ellipse",
+      "name": "Signal",
+      "z": 3,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": { "x": 8.0, "y": 50.0, "w": 12.0, "h": 6.8, "unit": "%" },
+      "fill": "#B7E36D",
+      "stroke": null,
+      "radius": "50%",
+      "text": null,
+      "version": 1,
+      "updatedAt": "2026-09-20T14:22:31Z"
+    },
+    "triangle_cursor": {
+      "id": "n5",
+      "type": "triangle",
+      "name": "Cursor",
+      "z": 4,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": { "x": 84.0, "y": 7.0, "w": 8.0, "h": 4.8, "unit": "%" },
+      "fill": "#3F5CE1",
+      "stroke": null,
+      "radius": 0,
+      "text": null,
+      "version": 1,
+      "updatedAt": "2026-09-20T14:22:31Z"
+    },
+    "image_output": {
+      "id": "n6",
+      "type": "image",
+      "name": "Output",
       "z": 5,
       "visible": true,
       "opacity": 1.0,
-      "rect": {
-        "x": 12.0,
-        "y": 78.0,
-        "w": 76.0,
-        "h": 4.0,
-        "unit": "%"
-      },
-      "fill": null,
-      "stroke": {
-        "color": "#5E6462",
-        "width": 2
-      },
-      "radius": 0,
+      "rect": { "x": 8.0, "y": 61.0, "w": 84.0, "h": 29.0, "unit": "%" },
+      "fill": "#181B1A",
+      "stroke": null,
+      "radius": 20,
       "text": null,
-      "line": {
-        "orientation": "topLeftToBottomRight"
-      },
+      "source": null,
+      "contentScale": "crop",
+      "alt": "CONTRACT → CSS / HTML / KOTLIN",
       "version": 1,
       "updatedAt": "2026-09-20T14:22:31Z"
     }

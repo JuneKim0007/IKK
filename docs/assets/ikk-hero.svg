@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760" role="img" aria-labelledby="title desc">
+  <title id="title">IKK Contract Studio</title>
+  <desc id="desc">A dark interface editor showing one minimal design contract generating Web and Android code.</desc>
+  <defs>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#303630"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+  </defs>
+
+  <rect width="1440" height="760" rx="28" fill="#0F1210"/>
+  <rect width="1440" height="760" rx="28" fill="url(#dots)" opacity=".55"/>
+
+  <g font-family="Manrope,Arial,sans-serif">
+    <rect x="64" y="62" width="52" height="44" rx="10" fill="#B7E36D"/>
+    <text x="90" y="90" text-anchor="middle" fill="#151816" font-size="15" font-weight="800" letter-spacing="-1">IKK</text>
+    <text x="130" y="78" fill="#F4F0E8" font-size="12" font-weight="700" letter-spacing="2">CONTRACT STUDIO</text>
+    <text x="130" y="98" fill="#7F8880" font-size="11" letter-spacing="1.2">HACKATHON BUILD / 2026</text>
+
+    <text x="64" y="198" fill="#F4F0E8" font-size="62" font-weight="700" letter-spacing="-3.6">One source.</text>
+    <text x="64" y="264" fill="#F4F0E8" font-size="62" font-weight="700" letter-spacing="-3.6">Every surface.</text>
+    <text x="66" y="316" fill="#9AA19B" font-size="16">Design once. Generate deterministic CSS,</text>
+    <text x="66" y="342" fill="#9AA19B" font-size="16">HTML, and Jetpack Compose from the same JSON.</text>
+
+    <g transform="translate(64 410)">
+      <rect width="132" height="38" rx="8" fill="#B7E36D"/>
+      <text x="66" y="24" text-anchor="middle" fill="#151816" font-size="12" font-weight="700">JSON CONTRACT</text>
+      <text x="151" y="24" fill="#687069" font-size="18">→</text>
+      <rect x="180" width="76" height="38" rx="8" fill="#1B201C" stroke="#343A35"/>
+      <text x="218" y="24" text-anchor="middle" fill="#F4F0E8" font-size="11" font-weight="700">CSS</text>
+      <rect x="264" width="76" height="38" rx="8" fill="#1B201C" stroke="#343A35"/>
+      <text x="302" y="24" text-anchor="middle" fill="#F4F0E8" font-size="11" font-weight="700">HTML</text>
+      <rect x="348" width="92" height="38" rx="8" fill="#1B201C" stroke="#343A35"/>
+      <text x="394" y="24" text-anchor="middle" fill="#F4F0E8" font-size="11" font-weight="700">KOTLIN</text>
+    </g>
+
+    <g transform="translate(64 650)" font-family="IBM Plex Mono,monospace">
+      <circle cx="5" cy="-4" r="5" fill="#B7E36D"/>
+      <text x="19" y="0" fill="#A0A8A1" font-size="11" letter-spacing=".8">CONTRACT CLEAN</text>
+      <text x="190" y="0" fill="#5E665F" font-size="11">•</text>
+      <text x="211" y="0" fill="#A0A8A1" font-size="11" letter-spacing=".8">3 TARGETS</text>
+      <text x="323" y="0" fill="#5E665F" font-size="11">•</text>
+      <text x="344" y="0" fill="#A0A8A1" font-size="11" letter-spacing=".8">0 AI GUESSES</text>
+    </g>
+  </g>
+
+  <g transform="translate(560 54)" filter="url(#shadow)">
+    <rect width="818" height="650" rx="17" fill="#151816" stroke="#3A403B"/>
+    <path d="M0 17Q0 0 17 0h784q17 0 17 17v42H0z" fill="#191D1A"/>
+    <line y1="59" x2="818" y2="59" stroke="#343A35"/>
+    <rect x="18" y="15" width="38" height="30" rx="7" fill="#B7E36D"/>
+    <text x="37" y="35" text-anchor="middle" fill="#151816" font-family="Arial" font-size="11" font-weight="800">IKK</text>
+    <text x="68" y="29" fill="#8D958E" font-family="Arial" font-size="8" letter-spacing="1.1">CONTRACT</text>
+    <text x="68" y="40" fill="#8D958E" font-family="Arial" font-size="8" letter-spacing="1.1">STUDIO</text>
+
+    <g transform="translate(182 14)">
+      <rect width="152" height="32" rx="9" fill="#111412" stroke="#343A35"/>
+      <rect x="5" y="5" width="28" height="22" rx="5" fill="#B7E36D"/>
+      <path d="M16 10l9 6-5 1-2 6z" fill="#151816"/>
+      <rect x="42" y="9" width="15" height="14" rx="3" fill="none" stroke="#DBDED8"/>
+      <circle cx="64" cy="19" r="6" fill="none" stroke="#DBDED8"/>
+      <text x="87" y="22" fill="#DBDED8" font-family="Arial" font-size="16">T</text>
+      <rect x="112" y="9" width="18" height="14" rx="2" fill="none" stroke="#DBDED8"/>
+      <circle cx="126" cy="12" r="2" fill="#DBDED8"/>
+    </g>
+
+    <circle cx="622" cy="30" r="4" fill="#B7E36D"/>
+    <text x="633" y="34" fill="#B7E36D" font-family="IBM Plex Mono,monospace" font-size="9">clean</text>
+    <rect x="694" y="13" width="106" height="34" rx="8" fill="#B7E36D"/>
+    <text x="747" y="34" text-anchor="middle" fill="#151816" font-family="Arial" font-size="11" font-weight="700">Generate ↗</text>
+
+    <rect x="0" y="59" width="154" height="560" fill="#191D1A"/>
+    <line x1="154" y1="59" x2="154" y2="619" stroke="#343A35"/>
+    <text x="14" y="84" fill="#7F8880" font-family="IBM Plex Mono,monospace" font-size="8" letter-spacing="1.4">LAYERS</text>
+    <text x="137" y="84" text-anchor="end" fill="#7F8880" font-family="monospace" font-size="8">06</text>
+    <line x1="0" y1="96" x2="154" y2="96" stroke="#343A35"/>
+    <g font-family="Arial" font-size="10" fill="#D9DDD7">
+      <circle cx="16" cy="118" r="3" fill="#8C948D"/><text x="29" y="122">Output</text><text x="137" y="122" text-anchor="end" fill="#687069" font-family="monospace" font-size="7">image</text>
+      <circle cx="16" cy="150" r="3" fill="#8C948D"/><text x="29" y="154">Cursor</text><text x="137" y="154" text-anchor="end" fill="#687069" font-family="monospace" font-size="7">triangle</text>
+      <circle cx="16" cy="182" r="3" fill="#8C948D"/><text x="29" y="186">Signal</text><text x="137" y="186" text-anchor="end" fill="#687069" font-family="monospace" font-size="7">ellipse</text>
+      <circle cx="16" cy="214" r="3" fill="#8C948D"/><text x="29" y="218">Divider</text><text x="137" y="218" text-anchor="end" fill="#687069" font-family="monospace" font-size="7">line</text>
+      <rect x="7" y="229" width="140" height="31" rx="6" fill="#29341F" stroke="#52653B"/>
+      <circle cx="16" cy="245" r="3" fill="#B7E36D"/><text x="29" y="249">Statement</text><text x="137" y="249" text-anchor="end" fill="#8FA273" font-family="monospace" font-size="7">text</text>
+      <circle cx="16" cy="278" r="3" fill="#8C948D"/><text x="29" y="282">Background</text><text x="137" y="282" text-anchor="end" fill="#687069" font-family="monospace" font-size="7">rect</text>
+    </g>
+
+    <rect x="154" y="59" width="430" height="560" fill="#0F1210"/>
+    <g opacity=".6">
+      <path d="M176 59v560M198 59v560M220 59v560M242 59v560M264 59v560M286 59v560M308 59v560M330 59v560M352 59v560M374 59v560M396 59v560M418 59v560M440 59v560M462 59v560M484 59v560M506 59v560M528 59v560M550 59v560M572 59v560" stroke="#252A26" stroke-dasharray="1 21"/>
+    </g>
+    <g transform="translate(242 82)">
+      <rect width="254" height="452" fill="#F4F0E8"/>
+      <text x="21" y="94" fill="#181B1A" font-family="Arial" font-size="31" font-weight="700" letter-spacing="-1.5">One source.</text>
+      <text x="21" y="130" fill="#181B1A" font-family="Arial" font-size="31" font-weight="700" letter-spacing="-1.5">Every surface.</text>
+      <path d="M21 206l212 3" stroke="#181B1A" stroke-width="1.5"/>
+      <ellipse cx="36" cy="237" rx="15" ry="15" fill="#B7E36D"/>
+      <path d="M222 26l10 15h-20z" fill="#3F5CE1"/>
+      <rect x="21" y="274" width="212" height="131" rx="15" fill="#181B1A"/>
+      <text x="39" y="326" fill="#F4F0E8" font-family="IBM Plex Mono,monospace" font-size="9" letter-spacing="1.2">CONTRACT →</text>
+      <text x="39" y="350" fill="#F4F0E8" font-family="IBM Plex Mono,monospace" font-size="9" letter-spacing="1.2">CSS / HTML / KOTLIN</text>
+      <rect x="39" y="374" width="82" height="2" fill="#B7E36D"/>
+    </g>
+
+    <rect x="584" y="59" width="234" height="560" fill="#191D1A"/>
+    <line x1="584" y1="59" x2="584" y2="619" stroke="#343A35"/>
+    <text x="598" y="84" fill="#7F8880" font-family="IBM Plex Mono,monospace" font-size="8" letter-spacing="1.4">PROPERTIES</text>
+    <text x="798" y="84" text-anchor="end" fill="#7F8880" font-family="IBM Plex Mono,monospace" font-size="8">TEXT</text>
+    <line x1="584" y1="96" x2="818" y2="96" stroke="#343A35"/>
+    <g transform="translate(598 116)" font-family="Arial">
+      <text fill="#ECEDE8" font-size="10" font-weight="600">Position &amp; size</text>
+      <text y="32" fill="#7F8880" font-size="9">Position</text>
+      <rect y="42" width="95" height="28" rx="5" fill="#111412" stroke="#343A35"/><text x="12" y="60" fill="#7F8880" font-size="8">X</text><text x="81" y="60" text-anchor="end" fill="#D8DCD6" font-size="9">30</text>
+      <rect x="105" y="42" width="95" height="28" rx="5" fill="#111412" stroke="#343A35"/><text x="117" y="60" fill="#7F8880" font-size="8">Y</text><text x="186" y="60" text-anchor="end" fill="#D8DCD6" font-size="9">87</text>
+      <text y="98" fill="#ECEDE8" font-size="10" font-weight="600">Text</text>
+      <rect y="112" width="200" height="52" rx="6" fill="#111412" stroke="#343A35"/>
+      <text x="10" y="134" fill="#D8DCD6" font-size="9">One source.</text>
+      <text x="10" y="149" fill="#D8DCD6" font-size="9">Every surface.</text>
+      <text y="193" fill="#7F8880" font-size="9">Colour</text>
+      <g transform="translate(0 205)">
+        <rect width="22" height="22" rx="5" fill="#181B1A" stroke="#B7E36D" stroke-width="2"/>
+        <rect x="29" width="22" height="22" rx="5" fill="#5E6462"/>
+        <rect x="58" width="22" height="22" rx="5" fill="#F4F0E8"/>
+        <rect x="87" width="22" height="22" rx="5" fill="#B7E36D"/>
+        <rect x="116" width="22" height="22" rx="5" fill="#3F5CE1"/>
+      </g>
+    </g>
+
+    <rect y="619" width="818" height="31" rx="0 0 17 17" fill="#191D1A"/>
+    <line y1="619" x2="818" y2="619" stroke="#343A35"/>
+    <text x="14" y="639" fill="#7F8880" font-family="IBM Plex Mono,monospace" font-size="8">HOME · 375 × 667 DP · 6 NODES</text>
+    <text x="800" y="639" text-anchor="end" fill="#B7E36D" font-family="IBM Plex Mono,monospace" font-size="8">0 VIOLATIONS</text>
+  </g>
+</svg>

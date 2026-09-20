@@ -21,10 +21,15 @@ const FIXTURE = '../../docs/fixtures/valid/all_node_types.json';
 
 async function loadContract() {
   try {
+    const stored = await fetch(`${BACKEND}/v1/projects/demo/contract`, { cache: 'no-store' });
+    if (stored.ok) return { contract: await stored.json(), persisted: true };
+  } catch { /* backend may be offline; the editor still opens */ }
+
+  try {
     const res = await fetch(FIXTURE, { cache: 'no-store' });
-    if (res.ok) return await res.json();
+    if (res.ok) return { contract: await res.json(), persisted: false };
   } catch { /* falls through to an empty screen */ }
-  return emptyContract();
+  return { contract: emptyContract(), persisted: false };
 }
 
 function warn(message, tone = 'error') {
@@ -37,7 +42,11 @@ function warn(message, tone = 'error') {
 }
 
 async function boot() {
-  const store = new Store(await loadContract());
+  const initial = await loadContract();
+  const store = new Store(initial.contract);
+  if (!initial.persisted) {
+    for (const node of store.nodes()) store.dirtyIds.add(node.id);
+  }
   const sync = new SyncClient(store, { baseUrl: BACKEND, projectId: 'demo' });
 
   const root = document.getElementById('app');
@@ -127,7 +136,8 @@ async function boot() {
 
   paint();
   toolbar.setTool('move');
-  sync.probe();
+  const online = await sync.probe();
+  if (online && store.dirtyIds.size) sync.schedule();
 }
 
 boot();
