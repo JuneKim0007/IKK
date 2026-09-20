@@ -25,7 +25,7 @@ from app.settings import settings
 from app.shared.errors import ApiError, ContractInvalid, NotFound, api_error_handler
 from app.shared.ids import request_id
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 CODEGEN = REPO_ROOT / "packages" / "codegen" / "generate.mjs"
 
 app = FastAPI(title="IKK", version="0.1.0", docs_url="/docs")
@@ -103,7 +103,7 @@ def generate(project_id: str) -> dict:
     if contract is None:
         raise NotFound(f"no contract stored for project {project_id!r}")
     if not CODEGEN.exists():
-        raise ApiError("codegen/generate.mjs not found", status=500, code="codegen_missing")
+        raise ApiError(f"codegen not found at {CODEGEN}", status=500, code="codegen_missing")
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)

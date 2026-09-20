@@ -1,3 +1,12 @@
+> ## SUPERSEDED — Python, being ported to Java
+>
+> The backend is Java. This FastAPI implementation exists for exactly one
+> reason: it is the working reference the Java port is translating from.
+>
+> **It is deleted the moment the Java service passes `docs/fixtures/`** — see
+> `docs/roadmap-backend.md` B0.5. Not archived, not renamed to `legacy/`.
+> Deleted. Do not add features here.
+
 # backend
 
 FastAPI. Contract persistence, sync, and code generation.

@@ -9,13 +9,15 @@
 SHELL        := /bin/bash
 FRONTEND_PORT ?= 5173
 BACKEND_PORT  ?= 8000
+EDITOR        := apps/web/index.html
+EDITOR_URL     = http://localhost:$(FRONTEND_PORT)/$(EDITOR)?api=http://127.0.0.1:$(BACKEND_PORT)
 VENV          := apps/backend/.venv
 PY            := $(VENV)/bin/python
 RUN           := .run
 
 .DEFAULT_GOAL := help
 .PHONY: help up down frontend backend stop-frontend stop-backend status logs \
-        test test-kotlin test-codegen test-backend generate check clean venv \
+        test test-kotlin test-codegen test-web test-backend e2e generate check clean venv \
         docker-build docker-run
 
 ## ---------------------------------------------------------------- help
@@ -29,10 +31,11 @@ help:
 	@echo "  make status         what is running"
 	@echo "  make logs           tail both logs"
 	@echo ""
-	@echo "  make frontend       static server on :$(FRONTEND_PORT)"
-	@echo "  make backend        FastAPI on :$(BACKEND_PORT)"
+	@echo "  make frontend       editor on :$(FRONTEND_PORT)"
+	@echo "  make backend        API on :$(BACKEND_PORT)"
 	@echo ""
-	@echo "  make test           Kotlin + codegen + backend"
+	@echo "  make test           Kotlin + codegen + web + backend"
+	@echo "  make e2e            up, PUT a contract, generate, assert artifacts"
 	@echo "  make generate       run codegen over the example contract"
 	@echo "  make check          codegen determinism (regenerate must be a no-op)"
 	@echo ""
@@ -45,23 +48,27 @@ help:
 
 up: backend frontend
 	@echo ""
-	@echo "  frontend  http://localhost:$(FRONTEND_PORT)/"
-	@echo "  backend   http://localhost:$(BACKEND_PORT)/docs"
+	@echo "  editor   $(EDITOR_URL)"
+	@echo "  backend  http://localhost:$(BACKEND_PORT)/docs"
 	@echo ""
 	@echo "  make down   to stop"
 
 $(RUN):
 	@mkdir -p $(RUN)
 
+# Served from the repo ROOT, not apps/web, so the editor can fetch
+# docs/fixtures/ from the same origin. Native ES modules, no bundler, no install.
 frontend: $(RUN) stop-frontend
 	@echo "→ frontend on :$(FRONTEND_PORT)"
 	@python3 -m http.server $(FRONTEND_PORT) --bind 127.0.0.1 \
 		> $(RUN)/frontend.log 2>&1 & echo $$! > $(RUN)/frontend.pid
-	@sleep 1
-	@echo "  prototypes  http://localhost:$(FRONTEND_PORT)/prototype/"
-	@echo "  web editor  http://localhost:$(FRONTEND_PORT)/prototype/editor-web/"
-	@echo "  android     http://localhost:$(FRONTEND_PORT)/prototype/editor-android/"
-	@-command -v open >/dev/null && open "http://localhost:$(FRONTEND_PORT)/prototype/editor-web/" || true
+	@for i in $$(seq 1 40); do \
+		curl -sf -o /dev/null http://127.0.0.1:$(FRONTEND_PORT)/$(EDITOR) && break || sleep 0.25; \
+	done
+	@curl -sf -o /dev/null http://127.0.0.1:$(FRONTEND_PORT)/$(EDITOR) \
+		&& echo "  editor  $(EDITOR_URL)" \
+		|| { echo "  FAILED — see $(RUN)/frontend.log"; exit 1; }
+	@-command -v open >/dev/null && open "$(EDITOR_URL)" >/dev/null 2>&1 || true
 
 backend: venv $(RUN) stop-backend
 	@echo "→ backend on :$(BACKEND_PORT)"
@@ -122,7 +129,7 @@ $(VENV)/.installed: apps/backend/pyproject.toml
 
 ## ---------------------------------------------------------------- test
 
-test: test-kotlin test-codegen test-backend
+test: test-kotlin test-codegen test-web test-backend
 	@echo ""
 	@echo "  all suites green"
 
@@ -134,9 +141,29 @@ test-codegen:
 	@echo "→ codegen"
 	@cd packages/codegen && npm test
 
+test-web:
+	@echo "→ web"
+	@cd apps/web && npm test
+
 test-backend: venv
 	@echo "→ backend"
 	@cd apps/backend && ../../$(VENV)/bin/pytest -q
+
+# Integrated: the contract goes in over HTTP and real artifacts come back.
+# This is the only target that proves the two halves agree at runtime.
+e2e: up
+	@echo "→ e2e"
+	@curl -sf -X PUT http://127.0.0.1:$(BACKEND_PORT)/v1/projects/demo/contract \
+		-H 'content-type: application/json' \
+		--data-binary @packages/codegen/examples/home.json > /dev/null \
+		|| { echo "  PUT failed"; exit 1; }
+	@curl -sf -X POST http://127.0.0.1:$(BACKEND_PORT)/v1/projects/demo/generate \
+		| python3 -c "import json,sys; d=json.load(sys.stdin); \
+			names=[a['name'] for a in d['artifacts']]; \
+			assert any(n.endswith('.kt') for n in names), names; \
+			assert any(n.endswith('.css') for n in names), names; \
+			print('  ok', d['checkpoint'], '->', ', '.join(names))"
+	@$(MAKE) --no-print-directory down
 
 generate:
 	@cd packages/codegen && npm run generate
