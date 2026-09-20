@@ -206,6 +206,7 @@ button { cursor: pointer; }
   border-radius: 8px; box-shadow: 0 6px 22px rgb(0 0 0 / .3); z-index: 60;
   max-width: min(520px, 90vw); font-size: 13px;
 }
+#warning[data-tone="success"] { background: var(--ok); }
 
 @media (max-width: 900px) {
   .columns { grid-template-columns: minmax(0, 1fr); grid-auto-rows: min-content; overflow-y: auto; }

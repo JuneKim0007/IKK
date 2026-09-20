@@ -161,12 +161,12 @@ export function validate(contract) {
     if (n.type === 'text' && !n.text) out.push({ rule: 'V7', where: key, message: 'text node without text' });
     if (n.type === 'ellipse' && n.radius !== '50%') out.push({ rule: 'V10', where: key, message: 'ellipse radius' });
     if (n.type === 'triangle' && (n.stroke || n.radius !== 0)) {
-      out.push({ rule: 'V16', where: key, message: 'a triangle carries no stroke or radius' });
+      out.push({ rule: 'V23', where: key, message: 'a triangle carries no stroke or radius' });
     }
     if (n.type === 'line') {
-      if (!n.stroke) out.push({ rule: 'V17', where: key, message: 'a line must have a stroke' });
-      if (n.fill) out.push({ rule: 'V17', where: key, message: 'a line has no fill' });
-      if (!n.line?.orientation) out.push({ rule: 'V17', where: key, message: 'a line needs an orientation' });
+      if (!n.stroke || n.stroke.width <= 0) out.push({ rule: 'V24', where: key, message: 'a line needs a positive stroke width' });
+      if (n.fill) out.push({ rule: 'V24', where: key, message: 'a line has no fill' });
+      if (!n.line?.orientation) out.push({ rule: 'V24', where: key, message: 'a line needs an orientation' });
     }
     if (!n.name?.trim()) out.push({ rule: 'V13', where: key, message: 'blank name' });
     const folded = n.name?.trim().toLowerCase();

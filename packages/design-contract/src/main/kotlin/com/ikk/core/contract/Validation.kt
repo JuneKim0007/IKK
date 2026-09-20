@@ -26,13 +26,13 @@ object ContractValidator {
             v += Violation("V1", "root", "layout \"${contract.layout}\" is not supported in v1")
         }
         if (contract.reference.w <= 0 || contract.reference.h <= 0 || contract.reference.unit != "dp") {
-            v += Violation("V18", "reference", "reference must have positive dimensions and unit dp")
+            v += Violation("V16", "reference", "reference must have positive dimensions and unit dp")
         }
         if (!Regex("^cp_[0-9]{3,60}$").matches(contract.checkpoint)) {
-            v += Violation("V20", "root.checkpoint", "checkpoint must match ^cp_[0-9]{3,60}$")
+            v += Violation("V18", "root.checkpoint", "checkpoint must match ^cp_[0-9]{3,60}$")
         }
         if (!Regex("^[A-Z][A-Za-z0-9]{0,199}$").matches(contract.screen)) {
-            v += Violation("V23", "root.screen", "screen must be PascalCase and at most 200 characters")
+            v += Violation("V21", "root.screen", "screen must be PascalCase and at most 200 characters")
         }
 
         val seenIds = mutableSetOf<String>()
@@ -50,10 +50,10 @@ object ContractValidator {
                 v += Violation("V3", key, "duplicate id \"${node.id}\"")
             }
             if (node.id.isBlank() || node.id.length > 64) {
-                v += Violation("V22", key, "id must contain 1..64 characters")
+                v += Violation("V20", key, "id must contain 1..64 characters")
             }
             if (key.length > 240) {
-                v += Violation("V24", key, "component key must be at most 240 characters")
+                v += Violation("V22", key, "component key must be at most 240 characters")
             }
             if (node.opacity !in 0.0..1.0) {
                 v += Violation("V4", key, "opacity ${node.opacity} out of 0.0..1.0")
@@ -62,7 +62,7 @@ object ContractValidator {
                 v += Violation("V5", key, "rect must have positive size, got ${node.rect.w}x${node.rect.h}")
             }
             if (listOf(node.rect.x, node.rect.y, node.rect.w, node.rect.h).any { !it.hasAtMostOneDecimalPlace() }) {
-                v += Violation("V19", "$key.rect", "rect values must have at most one decimal place")
+                v += Violation("V17", "$key.rect", "rect values must have at most one decimal place")
             }
             val r = node.radius
             if (r is Radius.Dp && r.dp < 0) {
@@ -71,23 +71,23 @@ object ContractValidator {
             if (node is ImageNode && node.source != null && node.source.ref.isBlank()) {
                 v += Violation("V8", key, "an image source must have a non-blank ref")
             }
-            if (node is TriangleNode && (node.stroke != null || node.radius != Radius.ZERO)) {
-                v += Violation("V16", key, "a triangle carries no stroke or radius")
-            }
-            if (node is LineNode && node.fill != null) {
-                v += Violation("V17", key, "a line has no fill")
-            }
             node.text?.let { text ->
                 if (text.fontFamily != "Roboto" ||
                     (text.lineHeight != null && (!text.lineHeight.isFinite() || text.lineHeight <= 0)) ||
                     (text.maxLines != null && text.maxLines <= 0)
                 ) {
                     v += Violation(
-                        "V21",
+                        "V19",
                         "$key.text",
                         "fontFamily must be Roboto and lineHeight/maxLines must be positive when set",
                     )
                 }
+            }
+            if (node is TriangleNode && (node.stroke != null || node.radius != Radius.ZERO)) {
+                v += Violation("V23", key, "a triangle carries no stroke or radius")
+            }
+            if (node is LineNode && (node.fill != null || node.stroke.width <= 0)) {
+                v += Violation("V24", key, "a line has no fill and requires a positive stroke width")
             }
             if (node is EllipseNode && node.radius !is Radius.Full) {
                 v += Violation("V10", key, "an ellipse must have radius \"50%\"")

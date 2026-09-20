@@ -108,10 +108,8 @@ Every component, whatever its type, has this shape:
 
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `id` | string | ✔ | — | UUID. Stable, never reused, never shown |
-| `type` | enum | ✔ | — | `rect` · `ellipse` · `triangle` · `line` · `text` · `image` |
 | `id` | string | ✔ | — | 1–64 characters. Stable, never reused, never shown |
-| `type` | enum | ✔ | — | `rect` · `ellipse` · `text` · `image` |
+| `type` | enum | ✔ | — | `rect` · `ellipse` · `triangle` · `line` · `text` · `image` |
 | `name` | string | ✔ | — | Designer-facing. Unique within scope. §4.1 |
 | `z` | int | ✔ | — | Paint order, ascending. Ties broken by `id` |
 | `visible` | bool | ✔ | `true` | Hidden nodes stay in the contract and are **not** emitted |
@@ -395,14 +393,14 @@ the bottom edge. It carries no radius.
 **Stroke on a triangle is not the same primitive.** CSS `clip-path` clips the
 border away, so a bordered triangle renders with no visible outline, while
 Compose's `.border(shape)` follows the path. Rather than let the two surfaces
-disagree, v1 declares `stroke` **must be `null`** on a triangle (rule V16).
+disagree, v1 declares `stroke` **must be `null`** on a triangle (rule V23).
 Outlined triangles need a drawn path on both sides and are deferred.
 
 ### Line
 
 A straight stroke across the node's box, corner to corner. It has no fill, no
 text, and no radius — it is drawn, not painted. `stroke` is **required**;
-there is nothing to render without one (rule V17).
+there is nothing to render without one (rule V24).
 
 ```json
 "line": { "orientation": "topLeftToBottomRight" }
@@ -489,15 +487,15 @@ A contract is valid when all hold. Reject, do not repair.
 | V13 | `name` is non-empty after trimming |
 | V14 | `name` is unique within its parent scope — the screen in v1 |
 | V15 | `key` equals `{type}_{slug(name)}` for its node |
-| V16 | `type == "triangle"` ⟹ `stroke` is `null` and `radius` is `0` |
-| V17 | `type == "line"` ⟹ `fill` is `null` and `stroke` is non-null with `stroke.width > 0` |
-| V18 | `reference.w` and `reference.h` are positive integers and `reference.unit == "dp"` |
-| V19 | Every `rect` coordinate and dimension has at most one decimal place |
-| V20 | `checkpoint` matches `^cp_[0-9]{3,60}$` |
-| V21 | When `text` is present, `fontFamily == "Roboto"`; non-null `lineHeight` and `maxLines` are positive |
-| V22 | Every `id` contains 1–64 characters |
-| V23 | `screen` starts with an uppercase ASCII letter, then contains at most 199 ASCII letters or digits |
-| V24 | Every component map key contains at most 240 characters |
+| V16 | `reference.w` and `reference.h` are positive integers and `reference.unit == "dp"` |
+| V17 | Every `rect` coordinate and dimension has at most one decimal place |
+| V18 | `checkpoint` matches `^cp_[0-9]{3,60}$` |
+| V19 | When `text` is present, `fontFamily == "Roboto"`; non-null `lineHeight` and `maxLines` are positive |
+| V20 | Every `id` contains 1–64 characters |
+| V21 | `screen` starts with an uppercase ASCII letter, then contains at most 199 ASCII letters or digits |
+| V22 | Every component map key contains at most 240 characters |
+| V23 | `type == "triangle"` ⟹ `stroke` is `null` and `radius` is `0` |
+| V24 | `type == "line"` ⟹ `fill` is `null` and `stroke` is non-null with `stroke.width > 0` |
 
 V11 is the one people want to relax. Do not. A field one implementation writes
 and another silently drops is a divergence that only shows up at a demo.
@@ -658,4 +656,4 @@ bug.
 | Version | Change |
 |---|---|
 | 1 | Initial. rect, ellipse, text, image; relative geometry; per-node sync |
-| 1 | `triangle` (V16) and `line` (V17) added to the node-type enum. Still `schemaVersion 1` — this row exists because those two types shipped in Kotlin, JS and `docs/fixtures/` before this document was updated to match; the code was never wrong, this file was |
+| 1 | `triangle` (V23) and `line` (V24) added to the node-type enum. Still `schemaVersion 1` — this row exists because those two types shipped in Kotlin, JS and `docs/fixtures/` before this document was updated to match; the code was never wrong, this file was |

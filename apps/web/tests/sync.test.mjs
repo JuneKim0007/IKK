@@ -45,3 +45,47 @@ test('full-contract flushes are serialized and preserve mid-flight edits', async
     globalThis.addEventListener = originalAddEventListener;
   }
 });
+
+test('a stale checkpoint is refreshed without dropping local edits', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalAddEventListener = globalThis.addEventListener;
+  const requests = [];
+  globalThis.addEventListener = () => {};
+  globalThis.fetch = async (url, options = {}) => {
+    requests.push({ url, options });
+    if (requests.length === 1) {
+      return {
+        ok: false,
+        status: 409,
+        json: async () => ({ error: 'stale_checkpoint' }),
+      };
+    }
+    if (requests.length === 2) {
+      return {
+        ok: true,
+        json: async () => ({ checkpoint: 'cp_006' }),
+      };
+    }
+    return { ok: true };
+  };
+
+  try {
+    const store = new Store(emptyContract());
+    const node = createNode('rect', 'Card', 0, 0, 0);
+    store.add(node);
+    store.update(node.id, (value) => { value.opacity = 0.5; });
+    const sync = new SyncClient(store, { baseUrl: 'http://api', debounceMs: 60_000 });
+
+    await sync.flush();
+
+    assert.equal(requests.length, 3);
+    assert.equal(requests[1].options.method, undefined);
+    assert.equal(JSON.parse(requests[2].options.body).checkpoint, 'cp_006');
+    assert.equal(JSON.parse(requests[2].options.body).components.rect_card.opacity, 0.5);
+    assert.equal(store.dirtyIds.size, 0);
+    assert.equal(sync.status, 'clean');
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.addEventListener = originalAddEventListener;
+  }
+});

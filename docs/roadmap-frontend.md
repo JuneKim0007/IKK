@@ -46,7 +46,7 @@ sync silently loses the edit.
       now (`core/keymap.js`) but nothing tells a new user that `R` exists
 - [ ] **F1.22** Outlined triangles — needs a drawn path on both surfaces,
       because `clip-path` clips a CSS border away while Compose's `.border`
-      follows the shape (rule V16 forbids the half-working version)
+      follows the shape (rule V23 forbids the half-working version)
 - [ ] **F1.23** Arbitrary-angle lines. A line is currently its bounding box
       plus which diagonal it runs along, which keeps every other behaviour
       unchanged but caps the angles available

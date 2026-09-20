@@ -148,11 +148,11 @@ data class TriangleNode(
 ) : DesignNode() {
     init {
         requireCommonInvariants()
-        // V16. CSS clip-path clips the border away while Compose's .border()
+        // V23. CSS clip-path clips the border away while Compose's .border()
         // follows the path, so a stroked triangle would render differently on
         // the two surfaces. Outlined triangles need a drawn path on both.
-        require(stroke == null) { "a triangle carries no stroke (V16)" }
-        require(radius == Radius.ZERO) { "a triangle carries no radius (V16)" }
+        require(stroke == null) { "a triangle carries no stroke (V23)" }
+        require(radius == Radius.ZERO) { "a triangle carries no radius (V23)" }
     }
 
     override val key: String get() = keyFor("triangle")
@@ -183,10 +183,10 @@ data class LineNode(
 ) : DesignNode() {
     init {
         requireCommonInvariants()
-        // V17. A line is a stroke: without one there is nothing to draw, and a
+        // V24. A line is a stroke: without one there is nothing to draw, and a
         // fill would be painting a box the line only uses as a bounding box.
-        require(fill == null) { "a line has no fill (V17)" }
-        require(stroke.width > 0) { "a line needs a positive stroke width (V17)" }
+        require(fill == null) { "a line has no fill (V24)" }
+        require(stroke.width > 0) { "a line needs a positive stroke width (V24)" }
     }
 
     override val key: String get() = keyFor("line")

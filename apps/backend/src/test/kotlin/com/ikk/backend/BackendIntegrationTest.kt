@@ -64,8 +64,8 @@ class BackendIntegrationTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.checkpoint").value("cp_005"))
-            // all_node_types.json grew a triangle and a line; the count follows the
-            // fixture rather than being asserted independently of it.
+            // all_node_types.json grew a triangle and a line; the count follows
+            // the fixture rather than being asserted independently of it.
             .andExpect(jsonPath("$.components").value(6))
 
         mockMvc.perform(get("/v1/projects/{projectId}/contract", projectId))
@@ -110,12 +110,12 @@ class BackendIntegrationTest {
         // An id the fixture does not use, so this exercises the key collision
         // rather than tripping the stale-version check first.
         val collidingPayload = payload.deepCopy().apply {
-            put("id", "n99")
+            put("id", "n7")
             put("version", 1)
         }
         val collidingNode = json.createObjectNode().apply {
             putArray("nodes").addObject().apply {
-                put("id", "n99")
+                put("id", "n7")
                 put("type", "rect")
                 put("schemaVersion", 1)
                 put("version", 1)

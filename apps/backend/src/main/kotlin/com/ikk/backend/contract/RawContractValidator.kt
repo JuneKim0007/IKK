@@ -23,18 +23,17 @@ object RawContractValidator {
     private val referenceFields = setOf("w", "h", "unit")
     private val nodeFields = setOf(
         "id", "type", "name", "z", "visible", "opacity", "rect", "fill", "stroke",
-        "radius", "text", "version", "updatedAt",
+        "radius", "text", "version", "updatedAt", "line",
     )
     private val imageFields = nodeFields + setOf("source", "contentScale", "alt")
-    // A line is its bounding box plus which diagonal it runs along.
-    private val lineFields = nodeFields + setOf("line")
-    private val lineSpecFields = setOf("orientation")
     private val rectFields = setOf("x", "y", "w", "h", "unit")
     private val strokeFields = setOf("color", "width")
     private val textFields = setOf(
         "value", "size", "align", "color", "weight", "lineHeight", "fontFamily", "maxLines",
     )
     private val sourceFields = setOf("ref", "mime")
+    // A line is its bounding box plus which diagonal it runs along.
+    private val lineFields = setOf("orientation")
 
     fun validate(root: tools.jackson.databind.JsonNode): List<Violation> =
         validate(root.toKotlinxJson())
@@ -93,15 +92,11 @@ object RawContractValidator {
 
             val node = element as? JsonObject ?: continue
             val type = node["type"].stringValue()
-            val allowed = when (type) {
-                "image" -> imageFields
-                "line" -> lineFields
-                else -> nodeFields
-            }
-            unknownFields(node, allowed, key, violations)
+            unknownFields(node, if (type == "image") imageFields else nodeFields, key, violations)
             unknownFields(node["rect"], rectFields, "$key.rect", violations)
             unknownFields(node["stroke"], strokeFields, "$key.stroke", violations)
             unknownFields(node["text"], textFields, "$key.text", violations)
+            unknownFields(node["line"], lineFields, "$key.line", violations)
             if (type == "image") {
                 unknownFields(node["source"], sourceFields, "$key.source", violations)
             }
@@ -175,6 +170,15 @@ object RawContractValidator {
 
             if (type == "ellipse" && radius.stringValue() != "50%") {
                 violations += Violation("V10", key, "an ellipse must have radius \"50%\"")
+            }
+            if (type == "triangle" && (!node["stroke"].isNullOrMissing() || numericRadius != 0.0)) {
+                violations += Violation("V23", key, "a triangle carries no stroke or radius")
+            }
+            if (type == "line") {
+                val strokeWidth = (node["stroke"] as? JsonObject)?.get("width").finiteNumber()
+                if (!node["fill"].isNullOrMissing() || strokeWidth == null || strokeWidth <= 0.0) {
+                    violations += Violation("V24", key, "a line has no fill and requires a positive stroke width")
+                }
             }
 
             node["z"].intValue()?.let { z ->

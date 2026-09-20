@@ -297,7 +297,7 @@ predicates are the Kotlin half of the same idea.
 
 CSS `clip-path` clips the border away, so a bordered triangle shows nothing;
 Compose's `.border(shape)` follows the path and shows an outline. Rather than
-ship two surfaces that disagree, rule **V16** forbids it. Outlined triangles
+ship two surfaces that disagree, rule **V23** forbids it. Outlined triangles
 need a drawn path on both sides, and that is a feature, not a bug fix.
 
 ---
