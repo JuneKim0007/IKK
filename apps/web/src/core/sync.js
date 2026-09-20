@@ -70,7 +70,7 @@ export class SyncClient {
     if (succeeded && this.store.dirtyIds.size) return this.flush();
   }
 
-  async _flushOnce() {
+  async _flushOnce(allowCheckpointRefresh = true) {
     const sentVersions = new Map(
       [...this.store.dirtyIds].map((id) => [id, this.store.byId(id)?.version ?? null]),
     );
@@ -84,7 +84,15 @@ export class SyncClient {
           body,
         },
       );
-      if (!res.ok) { this._setStatus('failed'); return false; }
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        if (allowCheckpointRefresh && res.status === 409 && detail.error === 'stale_checkpoint') {
+          const refreshed = await this._refreshCheckpoint();
+          if (refreshed) return this._flushOnce(false);
+        }
+        this._setStatus('failed');
+        return false;
+      }
       for (const [id, version] of sentVersions) {
         if ((this.store.byId(id)?.version ?? null) === version) this.store.dirtyIds.delete(id);
       }
@@ -94,6 +102,17 @@ export class SyncClient {
       this._setStatus('offline');  // queue survives; it drains on the next edit
       return false;
     }
+  }
+
+  async _refreshCheckpoint() {
+    const res = await fetch(`${this.baseUrl}/v1/projects/${this.projectId}/contract`, {
+      cache: 'no-store',
+    });
+    if (!res.ok) return false;
+    const current = await res.json();
+    if (typeof current.checkpoint !== 'string') return false;
+    this.store.contract.checkpoint = current.checkpoint;
+    return true;
   }
 
   /**
