@@ -24,9 +24,10 @@ async function loadContract() {
   return emptyContract();
 }
 
-function warn(message) {
+function warn(message, tone = 'error') {
   const box = document.getElementById('warning');
   box.textContent = message;
+  box.dataset.tone = tone;
   box.hidden = false;
   clearTimeout(warn._t);
   warn._t = setTimeout(() => { box.hidden = true; }, 4000);
@@ -49,7 +50,7 @@ async function boot() {
     onGenerate: async () => {
       try {
         const out = await sync.generate();
-        warn(`Generated at ${out.checkpoint}: ${out.artifacts.map((a) => a.name).join(', ')}`);
+        warn(`Generated at ${out.checkpoint}: ${out.artifacts.map((a) => a.name).join(', ')}`, 'success');
       } catch (e) {
         warn(`Generate failed — is the backend running? (${e.message})`);
       }
