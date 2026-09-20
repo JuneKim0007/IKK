@@ -1,0 +1,1250 @@
+<title>Contract Designer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --chrome: #F2F3F1;
+    --chrome-2: #E7E9E6;
+    --canvas: #9EA3A1;
+    --panel: #FFFFFF;
+    --ink: #1B1D1C;
+    --muted: #616764;
+    --line: #CFD2CE;
+    --sel: #2F5D8C;
+    --sel-soft: #DDE8F3;
+    --ai: #9C6212;
+    --ai-soft: #F6EADA;
+    --bezel: #55595B;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --chrome: #1A1C1B;
+      --chrome-2: #232625;
+      --canvas: #2C302E;
+      --panel: #202322;
+      --ink: #E5E8E6;
+      --muted: #949B98;
+      --line: #343836;
+      --sel: #8FB5DC;
+      --sel-soft: #1A2A39;
+      --ai: #DFA24E;
+      --ai-soft: #342A19;
+      --bezel: #3A3E40;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --chrome: #1A1C1B;
+    --chrome-2: #232625;
+    --canvas: #2C302E;
+    --panel: #202322;
+    --ink: #E5E8E6;
+    --muted: #949B98;
+    --line: #343836;
+    --sel: #8FB5DC;
+    --sel-soft: #1A2A39;
+    --ai: #DFA24E;
+    --ai-soft: #342A19;
+    --bezel: #3A3E40;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--chrome);
+    color: var(--ink);
+    font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  button, select, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--sel); outline-offset: 1px; }
+
+  .app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+
+  /* ---------- toolbar ---------- */
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    padding-top: calc(7px + env(safe-area-inset-top, 0px));
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .logo { font-weight: 700; font-size: 13.5px; letter-spacing: -0.01em; }
+  .tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--sel); background: var(--sel-soft);
+    padding: 2px 6px; border-radius: 3px;
+  }
+  .sep { width: 1px; height: 20px; background: var(--line); }
+
+  .tbtn {
+    border: 1px solid transparent;
+    background: none;
+    width: 28px; height: 26px;
+    border-radius: 5px;
+    display: grid; place-items: center;
+    font-size: 13px;
+  }
+  .tbtn:hover { background: var(--chrome-2); border-color: var(--line); }
+  .tbtn[disabled] { opacity: .35; cursor: not-allowed; }
+
+  .grow { margin-left: auto; }
+
+  .btn {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    padding: 6px 11px;
+    border-radius: 5px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--chrome-2); }
+  .btn-primary { background: var(--sel); border-color: var(--sel); color: #fff; font-weight: 600; }
+  .btn-primary:hover { filter: brightness(1.1); }
+
+  /* ---------- 3 columns ---------- */
+
+  .cols {
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr) 236px;
+    min-height: 0;
+  }
+
+  .side {
+    background: var(--panel);
+    min-height: 0;
+    display: grid;
+    overflow: hidden;
+  }
+  .side.left { border-right: 1px solid var(--line); grid-template-rows: auto minmax(0, 1fr); }
+  .side.right { border-left: 1px solid var(--line); grid-template-rows: minmax(0, 1fr) auto; }
+
+  .head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 11px;
+    background: var(--chrome-2);
+    border-bottom: 1px solid var(--line);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .scroll { overflow-y: auto; min-height: 0; }
+
+  /* pages */
+  .pages { padding: 6px; }
+  .page-row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 8px; border-radius: 4px; width: 100%;
+    border: 1px solid transparent; background: none; text-align: left;
+  }
+  .page-row[aria-current="true"] { background: var(--sel-soft); border-color: var(--sel); color: var(--sel); font-weight: 600; }
+  .page-row:hover { background: var(--chrome-2); }
+
+  /* library */
+  .search {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--chrome-2);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .search:focus { outline: none; border-color: var(--sel); }
+
+  .cat { border-bottom: 1px solid var(--line); }
+  .cat > summary {
+    padding: 6px 11px;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 600;
+    list-style: none;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cat > summary::-webkit-details-marker { display: none; }
+  .cat > summary::before { content: "▸"; font-size: 9px; color: var(--muted); }
+  .cat[open] > summary::before { content: "▾"; }
+  .cat > summary:hover { background: var(--chrome-2); }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px 8px 10px;
+  }
+  .tile {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 5px;
+    padding: 6px 3px 5px;
+    display: grid; gap: 3px; justify-items: center;
+    font-size: 9px; color: var(--muted);
+    line-height: 1.15;
+  }
+  .tile:hover { border-color: var(--sel); background: var(--sel-soft); color: var(--sel); }
+  .tile svg { width: 20px; height: 16px; color: currentColor; }
+
+  /* ---------- canvas ---------- */
+
+  .stage {
+    background: var(--canvas);
+    overflow: auto;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    padding: 26px;
+  }
+
+  .device {
+    background: var(--bezel);
+    border-radius: 26px;
+    padding: 42px 12px 34px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.28);
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .device::before {
+    content: "";
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255,255,255,.28);
+  }
+  .device::after {
+    content: "";
+    position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%);
+    width: 34px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,.34);
+  }
+
+  .screen {
+    position: relative;
+    background: #FFFFFF;
+    color: #1B1D1C;
+    overflow: hidden;
+  }
+
+  .comp {
+    position: absolute;
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+  }
+  .comp.hidden { display: none; }
+  .comp.selected { outline: 1px solid var(--sel); outline-offset: 0; }
+  .comp:hover:not(.selected) { outline: 1px dashed var(--sel); }
+
+  .handle {
+    position: absolute;
+    width: 7px; height: 7px;
+    background: #fff;
+    border: 1px solid var(--sel);
+    border-radius: 1px;
+    z-index: 5;
+  }
+  .h-nw { left: -4px; top: -4px; cursor: nwse-resize; }
+  .h-n  { left: calc(50% - 3.5px); top: -4px; cursor: ns-resize; }
+  .h-ne { right: -4px; top: -4px; cursor: nesw-resize; }
+  .h-e  { right: -4px; top: calc(50% - 3.5px); cursor: ew-resize; }
+  .h-se { right: -4px; bottom: -4px; cursor: nwse-resize; }
+  .h-s  { left: calc(50% - 3.5px); bottom: -4px; cursor: ns-resize; }
+  .h-sw { left: -4px; bottom: -4px; cursor: nesw-resize; }
+  .h-w  { left: -4px; top: calc(50% - 3.5px); cursor: ew-resize; }
+
+  /* component looks */
+  .r { width: 100%; height: 100%; display: flex; align-items: center; pointer-events: none; }
+  .r-text { font-size: 14px; }
+  .r-heading { font-size: 20px; font-weight: 600; }
+  .r-button {
+    justify-content: center; background: #65558F; color: #fff;
+    border-radius: 18px; font-size: 13px; font-weight: 500;
+  }
+  .r-input { border: 1px solid #B5AFBC; border-radius: 6px; padding: 0 10px; font-size: 13px; color: #6B6675; }
+  .r-card { background: #F0EAF6; border-radius: 10px; padding: 10px; font-size: 12px; align-items: flex-start; }
+  .r-image { background: #E3DEEA; border-radius: 8px; justify-content: center; font-size: 10px; color: #6B6675; }
+  .r-switch { justify-content: flex-start; }
+  .r-switch i {
+    width: 100%; height: 100%; border-radius: 999px; background: #4CC98A;
+    position: relative; display: block;
+  }
+  .r-switch i::after {
+    content: ""; position: absolute; right: 3px; top: 50%; transform: translateY(-50%);
+    width: 44%; aspect-ratio: 1; border-radius: 50%; background: #fff;
+  }
+  .r-icon { justify-content: center; }
+  .r-icon i {
+    width: 70%; height: 70%; background: #D4404A;
+    border-radius: 3px; display: block;
+  }
+  .r-alert {
+    flex-direction: column; justify-content: center; gap: 4px;
+    border: 1px solid #B5AFBC; border-radius: 6px; font-size: 10px;
+  }
+  .r-list { flex-direction: column; gap: 4px; align-items: stretch; }
+  .r-list u {
+    display: block; flex: 1 1 0; background: #F0EAF6;
+    border-radius: 5px; text-decoration: none;
+  }
+
+  .stage-foot {
+    display: flex; align-items: center; gap: 12px;
+    padding: 6px 12px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .stage-foot select { border: 1px solid var(--line); background: var(--chrome-2); border-radius: 4px; padding: 2px 5px; font-size: 11px; }
+
+  /* ---------- inspector ---------- */
+
+  .group { border-bottom: 1px solid var(--line); padding: 9px 11px; }
+  .group-t {
+    font-size: 11px; font-weight: 600; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 5px; color: var(--muted);
+  }
+  .group-t::before { content: "⊟"; font-size: 9px; }
+
+  .xy { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; }
+  .num { display: flex; align-items: center; gap: 4px; }
+  .num label { font-size: 10.5px; color: var(--muted); width: 11px; flex: 0 0 auto; }
+  .num input {
+    width: 100%; min-width: 0;
+    border: 1px solid var(--line); background: var(--chrome-2);
+    border-radius: 4px; padding: 3px 5px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .num input:focus { outline: none; border-color: var(--sel); }
+
+  .frow { display: grid; gap: 4px; margin-bottom: 7px; }
+  .frow label { font-size: 10.5px; color: var(--muted); }
+  .frow input[type="text"], .frow select {
+    width: 100%;
+    border: 1px solid var(--line); background: var(--chrome-2);
+    border-radius: 4px; padding: 4px 6px; font-size: 12px;
+  }
+  .frow input:focus, .frow select:focus { outline: none; border-color: var(--sel); }
+  .frow.inline { display: flex; align-items: center; gap: 7px; }
+
+  .align-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+  .align-bar button {
+    border: 1px solid var(--line); background: var(--chrome-2);
+    border-radius: 4px; padding: 3px 0; font-size: 11px;
+  }
+  .align-bar button:hover { background: var(--panel); border-color: var(--sel); color: var(--sel); }
+
+  /* layers */
+  .layers { padding: 4px; }
+  .layer {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-radius: 4px; width: 100%;
+    border: 1px solid transparent; background: none; text-align: left;
+    font-size: 12px;
+  }
+  .layer[aria-current="true"] { background: var(--sel-soft); border-color: var(--sel); color: var(--sel); font-weight: 600; }
+  .layer:hover { background: var(--chrome-2); }
+  .layer .eye {
+    flex: 0 0 auto; width: 18px; height: 16px;
+    border: none; background: none; padding: 0;
+    font-size: 11px; opacity: .8; border-radius: 3px;
+  }
+  .layer .eye:hover { background: var(--line); }
+  .layer .nm { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .layer .ty { font-family: "IBM Plex Mono", monospace; font-size: 9.5px; color: var(--muted); }
+
+  /* ---------- drawer ---------- */
+
+  .drawer {
+    position: fixed; inset: 0;
+    background: rgba(8,11,12,.55);
+    display: grid; place-items: end center;
+    z-index: 40;
+  }
+  .sheet {
+    background: var(--panel);
+    border-radius: 11px 11px 0 0;
+    width: min(1040px, 100%);
+    height: min(86%, 100%);
+    display: grid; grid-template-rows: auto auto auto minmax(0, 1fr);
+    box-shadow: 0 -8px 40px rgba(0,0,0,.32);
+  }
+  .sheet-head { display: flex; align-items: center; gap: 10px; padding: 13px 15px 9px; }
+  .sheet-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+
+  .steps {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    padding: 0 15px 10px;
+    font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--muted);
+  }
+  .steps b, .steps em {
+    padding: 2px 6px; border-radius: 3px; font-style: normal; font-weight: 500;
+    color: var(--sel); background: var(--sel-soft);
+  }
+  .steps em { color: var(--ai); background: var(--ai-soft); }
+
+  .tabs { display: flex; gap: 3px; padding: 0 15px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .tabs button {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 7px 10px; font-size: 12px; font-weight: 500; color: var(--muted);
+    font-family: "IBM Plex Mono", monospace; white-space: nowrap;
+  }
+  .tabs button[aria-selected="true"] { color: var(--sel); border-bottom-color: var(--sel); }
+
+  .code {
+    margin: 0; padding: 13px 15px 20px;
+    overflow: auto; min-height: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px; line-height: 1.6;
+    white-space: pre; tab-size: 2;
+  }
+
+  @media (max-width: 980px) {
+    body { overflow: auto; }
+    .app { height: auto; min-height: 100%; }
+    .cols { grid-template-columns: minmax(0, 1fr); }
+    .side { overflow: visible; }
+    .side.left, .side.right { border: none; border-bottom: 1px solid var(--line); }
+    .side.left { grid-template-rows: auto auto; }
+    .side.right { grid-template-rows: auto auto; }
+    .scroll { overflow: visible; }
+    .stage { padding: 18px 12px; }
+    .tiles { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+  }
+</style>
+
+<div class="app">
+
+  <header class="toolbar">
+    <span class="logo">Contract Designer</span>
+    <span class="tag">Prototype</span>
+    <span class="sep"></span>
+    <button class="tbtn" type="button" id="undoBtn" title="Undo" aria-label="Undo">&#8634;</button>
+    <button class="tbtn" type="button" id="dupBtn" title="Duplicate" aria-label="Duplicate">&#10697;</button>
+    <button class="tbtn" type="button" id="delBtn" title="Delete" aria-label="Delete">&#9003;</button>
+    <span class="sep"></span>
+    <button class="tbtn" type="button" id="frontBtn" title="Bring to front" aria-label="Bring to front">&#9633;</button>
+    <button class="tbtn" type="button" id="backBtn" title="Send to back" aria-label="Send to back">&#9632;</button>
+    <span class="grow"></span>
+    <button class="btn" type="button" id="themeBtn">Theme</button>
+    <button class="btn" type="button" id="resetBtn">Reset</button>
+    <button class="btn btn-primary" type="button" id="genBtn">Generate</button>
+  </header>
+
+  <div class="cols">
+
+    <!-- ============ left ============ -->
+    <nav class="side left" aria-label="Project and components">
+      <div>
+        <div class="head"><span>Project</span></div>
+        <div class="pages">
+          <button class="page-row" type="button" aria-current="true">&#9635; Home</button>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <div class="head"><span>Components</span></div>
+        <div style="padding:7px 8px 3px">
+          <input type="text" class="search" id="search" placeholder="Search component" aria-label="Search components">
+        </div>
+        <div id="library"></div>
+      </div>
+    </nav>
+
+    <!-- ============ canvas ============ -->
+    <main class="stage" id="stage">
+      <div class="device" id="device">
+        <div class="screen" id="screen"></div>
+      </div>
+    </main>
+
+    <!-- ============ right ============ -->
+    <aside class="side right" aria-label="Properties and outline">
+      <div class="scroll" id="inspector"></div>
+
+      <div>
+        <div class="head"><span>Outline</span><span id="layerCount">0</span></div>
+        <div class="layers scroll" id="layers" style="max-height:190px"></div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="stage-foot">
+    <span id="footName">Home</span>
+    <span id="footSize">[ 375 &times; 667 ]</span>
+    <span class="grow"></span>
+    <label for="zoom" style="color:var(--muted)">Zoom</label>
+    <select id="zoom">
+      <option value="0.6">60%</option>
+      <option value="0.8">80%</option>
+      <option value="1" selected>100%</option>
+      <option value="1.25">125%</option>
+    </select>
+    <span id="footSel">no selection</span>
+  </footer>
+</div>
+
+<div class="drawer" id="drawer" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head">
+      <h2 id="sheetTitle">Generate</h2>
+      <span class="grow"></span>
+      <button class="btn" type="button" id="closeBtn">Close</button>
+    </div>
+    <div class="steps">
+      <b>01 design</b> &rarr; <b>02 contract</b> &rarr; <b>03 codegen</b> &rarr;
+      <em>04 agent</em> &rarr; <b>05 gate</b>
+    </div>
+    <div class="tabs" id="tabs" role="tablist">
+      <button type="button" role="tab" data-p="contract" aria-selected="true">contract.json</button>
+      <button type="button" role="tab" data-p="kt" aria-selected="false">Home.generated.kt</button>
+      <button type="button" role="tab" data-p="html" aria-selected="false">home.generated.html</button>
+      <button type="button" role="tab" data-p="css" aria-selected="false">home.generated.css</button>
+      <button type="button" role="tab" data-p="steps" aria-selected="false">checkpoint</button>
+    </div>
+    <pre class="code" id="out"></pre>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var SCREEN_W = 375, SCREEN_H = 667;
+
+  var LIB = [
+    { cat: "Static", open: true, items: [
+      { t: "heading", n: "Heading", w: 180, h: 28 },
+      { t: "text",    n: "Text",    w: 180, h: 20 },
+      { t: "image",   n: "Image",   w: 180, h: 101 },
+      { t: "card",    n: "Card",    w: 200, h: 90 }
+    ]},
+    { cat: "Mobile", open: true, items: [
+      { t: "button", n: "Button", w: 150, h: 40 },
+      { t: "input",  n: "Input",  w: 200, h: 40 },
+      { t: "switch", n: "Switch", w: 46,  h: 26 },
+      { t: "icon",   n: "Icon",   w: 24,  h: 24 },
+      { t: "alert",  n: "Alert",  w: 120, h: 70 }
+    ]},
+    { cat: "Layout", open: false, items: [
+      { t: "list", n: "List", w: 220, h: 120 }
+    ]}
+  ];
+
+  var GLYPH = {
+    heading: '<rect x="1" y="4" width="14" height="4" rx="1" fill="currentColor"/><rect x="1" y="11" width="9" height="2" rx="1" fill="currentColor" opacity=".5"/>',
+    text:    '<rect x="1" y="3" width="17" height="2" rx="1" fill="currentColor" opacity=".7"/><rect x="1" y="7" width="17" height="2" rx="1" fill="currentColor" opacity=".7"/><rect x="1" y="11" width="11" height="2" rx="1" fill="currentColor" opacity=".7"/>',
+    image:   '<rect x="1" y="2" width="18" height="12" rx="2" fill="none" stroke="currentColor"/><circle cx="6" cy="6" r="1.6" fill="currentColor"/><path d="M2 13l5-4 4 3 3-2 4 3" fill="none" stroke="currentColor"/>',
+    card:    '<rect x="1" y="2" width="18" height="12" rx="2" fill="none" stroke="currentColor"/><rect x="4" y="5" width="8" height="2" rx="1" fill="currentColor"/>',
+    button:  '<rect x="1" y="4" width="18" height="9" rx="4.5" fill="currentColor" opacity=".85"/>',
+    input:   '<rect x="1" y="4" width="18" height="9" rx="2" fill="none" stroke="currentColor"/><rect x="4" y="7.5" width="6" height="2" rx="1" fill="currentColor" opacity=".55"/>',
+    switch:  '<rect x="1" y="4" width="18" height="9" rx="4.5" fill="currentColor" opacity=".35"/><circle cx="14.5" cy="8.5" r="3.4" fill="currentColor"/>',
+    icon:    '<rect x="4" y="3" width="11" height="11" rx="2" fill="currentColor" opacity=".8"/>',
+    alert:   '<rect x="1" y="2" width="18" height="12" rx="2" fill="none" stroke="currentColor"/><rect x="1" y="2" width="18" height="3.5" rx="2" fill="currentColor" opacity=".45"/>',
+    list:    '<rect x="1" y="2" width="18" height="3" rx="1" fill="currentColor" opacity=".7"/><rect x="1" y="6.5" width="18" height="3" rx="1" fill="currentColor" opacity=".7"/><rect x="1" y="11" width="18" height="3" rx="1" fill="currentColor" opacity=".7"/>'
+  };
+
+  var DEFAULTS = {
+    heading: { caption: "Welcome back", color: "#1B1D1C", schema: "static" },
+    text:    { caption: "Sign in to continue.", color: "#5E6462", schema: "static" },
+    button:  { caption: "Sign in", color: "#65558F", schema: "action", action: "submit" },
+    input:   { caption: "Email", color: "#B5AFBC", schema: "String", state: "email" },
+    card:    { caption: "Card content", color: "#F0EAF6", schema: "static" },
+    image:   { caption: "Hero", color: "#E3DEEA", schema: "Url", state: "imageUrl" },
+    switch:  { caption: "Remember me", color: "#4CC98A", schema: "Boolean", state: "remember" },
+    icon:    { caption: "Alarm", color: "#D4404A", schema: "static" },
+    alert:   { caption: "Alert Window", color: "#B5AFBC", schema: "static" },
+    list:    { caption: "Recent", color: "#F0EAF6", schema: "List<Item>", state: "recentItems" }
+  };
+
+  function seed() {
+    return [
+      { id: "c1", type: "heading", name: "Heading",  x: 28,  y: 96,  w: 220, h: 28,  vis: true, op: 100, props: { caption: "Welcome back", color: "#1B1D1C", schema: "static" } },
+      { id: "c2", type: "text",    name: "Text",     x: 28,  y: 130, w: 240, h: 20,  vis: true, op: 100, props: { caption: "Sign in to continue.", color: "#5E6462", schema: "static" } },
+      { id: "c3", type: "input",   name: "Email",    x: 28,  y: 182, w: 319, h: 44,  vis: true, op: 100, props: { caption: "Email", color: "#B5AFBC", schema: "String", state: "email" } },
+      { id: "c4", type: "input",   name: "Password", x: 28,  y: 238, w: 319, h: 44,  vis: true, op: 100, props: { caption: "Password", color: "#B5AFBC", schema: "String", state: "password" } },
+      { id: "c5", type: "switch",  name: "Switch",   x: 28,  y: 300, w: 46,  h: 26,  vis: true, op: 100, props: { caption: "Remember me", color: "#4CC98A", schema: "Boolean", state: "remember" } },
+      { id: "c6", type: "button",  name: "Sign in",  x: 28,  y: 356, w: 319, h: 46,  vis: true, op: 100, props: { caption: "Sign in", color: "#65558F", schema: "action", action: "submit" } },
+      { id: "c7", type: "alert",   name: "Alert",    x: 128, y: 452, w: 120, h: 70,  vis: true, op: 100, props: { caption: "Alert Window", color: "#B5AFBC", schema: "static" } }
+    ];
+  }
+
+  var comps = seed();
+  var sel = null;
+  var seq = 8;
+  var zoom = 1;
+  var panel = "contract";
+  var checkpoint = 1;
+  var history = [];
+
+  function snapshot() {
+    history.push(JSON.stringify(comps));
+    if (history.length > 40) history.shift();
+  }
+
+  function selected() {
+    for (var i = 0; i < comps.length; i++) if (comps[i].id === sel) return comps[i];
+    return null;
+  }
+
+  /* ---------- library ---------- */
+
+  function buildLibrary(filter) {
+    var host = $("library");
+    host.textContent = "";
+    var q = (filter || "").trim().toLowerCase();
+
+    LIB.forEach(function (group) {
+      var items = group.items.filter(function (it) {
+        return !q || it.n.toLowerCase().indexOf(q) >= 0 || it.t.indexOf(q) >= 0;
+      });
+      if (!items.length) return;
+
+      var d = document.createElement("details");
+      d.className = "cat";
+      if (group.open || q) d.open = true;
+
+      var s = document.createElement("summary");
+      s.textContent = group.cat;
+      d.appendChild(s);
+
+      var grid = document.createElement("div");
+      grid.className = "tiles";
+
+      items.forEach(function (it) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "tile";
+        b.innerHTML = '<svg viewBox="0 0 20 16" aria-hidden="true">' + GLYPH[it.t] + "</svg>";
+        var lbl = document.createElement("span");
+        lbl.textContent = it.n;
+        b.appendChild(lbl);
+        b.addEventListener("click", function () { add(it); });
+        grid.appendChild(b);
+      });
+
+      d.appendChild(grid);
+      host.appendChild(d);
+    });
+  }
+
+  function add(it) {
+    snapshot();
+    var c = {
+      id: "c" + seq++,
+      type: it.t,
+      name: it.n,
+      x: Math.round((SCREEN_W - it.w) / 2),
+      y: 60 + ((comps.length * 18) % 380),
+      w: it.w, h: it.h,
+      vis: true, op: 100,
+      props: JSON.parse(JSON.stringify(DEFAULTS[it.t]))
+    };
+    comps.push(c);
+    sel = c.id;
+    render();
+  }
+
+  /* ---------- canvas render ---------- */
+
+  function inner(c) {
+    var p = c.props;
+    if (c.type === "switch") return '<span class="r r-switch"><i></i></span>';
+    if (c.type === "icon")   return '<span class="r r-icon"><i></i></span>';
+    if (c.type === "image")  return '<span class="r r-image">' + esc(p.caption) + "</span>";
+    if (c.type === "alert")  return '<span class="r r-alert"><b>&#9888;</b>' + esc(p.caption) + "</span>";
+    if (c.type === "list")   return '<span class="r r-list"><u></u><u></u><u></u></span>';
+    return '<span class="r r-' + c.type + '">' + esc(p.caption) + "</span>";
+  }
+
+  function render() {
+    var screen = $("screen");
+    screen.style.width = (SCREEN_W * zoom) + "px";
+    screen.style.height = (SCREEN_H * zoom) + "px";
+    screen.textContent = "";
+
+    comps.forEach(function (c) {
+      var el = document.createElement("div");
+      el.className = "comp" + (c.vis ? "" : " hidden") + (c.id === sel ? " selected" : "");
+      el.style.left = (c.x * zoom) + "px";
+      el.style.top = (c.y * zoom) + "px";
+      el.style.width = (c.w * zoom) + "px";
+      el.style.height = (c.h * zoom) + "px";
+      el.style.opacity = c.op / 100;
+      el.dataset.id = c.id;
+      el.innerHTML = inner(c);
+
+      if (c.id === sel) {
+        ["nw","n","ne","e","se","s","sw","w"].forEach(function (d) {
+          var h = document.createElement("span");
+          h.className = "handle h-" + d;
+          h.dataset.dir = d;
+          el.appendChild(h);
+        });
+      }
+
+      screen.appendChild(el);
+    });
+
+    $("layerCount").textContent = String(comps.length);
+    $("footSize").textContent = "[ " + SCREEN_W + " × " + SCREEN_H + " ]";
+    var s = selected();
+    $("footSel").textContent = s ? (s.name + "  " + s.w + "×" + s.h) : "no selection";
+
+    renderInspector();
+    renderLayers();
+    if (!$("drawer").hidden) paint();
+  }
+
+  /* ---------- drag + resize ---------- */
+
+  var drag = null;
+
+  $("screen").addEventListener("pointerdown", function (e) {
+    var handle = e.target.closest(".handle");
+    var comp = e.target.closest(".comp");
+    if (!comp) { sel = null; render(); return; }
+
+    var c = null;
+    for (var i = 0; i < comps.length; i++) if (comps[i].id === comp.dataset.id) c = comps[i];
+    if (!c) return;
+
+    if (sel !== c.id) { sel = c.id; render(); }
+    snapshot();
+
+    drag = {
+      c: c,
+      dir: handle ? handle.dataset.dir : null,
+      sx: e.clientX, sy: e.clientY,
+      ox: c.x, oy: c.y, ow: c.w, oh: c.h
+    };
+    e.preventDefault();
+    e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
+  });
+
+  window.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    var dx = Math.round((e.clientX - drag.sx) / zoom);
+    var dy = Math.round((e.clientY - drag.sy) / zoom);
+    var c = drag.c, d = drag.dir;
+
+    if (!d) {
+      c.x = clamp(drag.ox + dx, -c.w + 12, SCREEN_W - 12);
+      c.y = clamp(drag.oy + dy, -c.h + 12, SCREEN_H - 12);
+    } else {
+      if (d.indexOf("e") >= 0) c.w = Math.max(12, drag.ow + dx);
+      if (d.indexOf("s") >= 0) c.h = Math.max(12, drag.oh + dy);
+      if (d.indexOf("w") >= 0) { c.w = Math.max(12, drag.ow - dx); c.x = drag.ox + (drag.ow - c.w); }
+      if (d.indexOf("n") >= 0) { c.h = Math.max(12, drag.oh - dy); c.y = drag.oy + (drag.oh - c.h); }
+    }
+    render();
+  });
+
+  window.addEventListener("pointerup", function () { drag = null; });
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(v, hi)); }
+
+  /* ---------- inspector ---------- */
+
+  function numField(key, label, val, onset) {
+    var w = document.createElement("div");
+    w.className = "num";
+    var l = document.createElement("label");
+    l.textContent = label;
+    l.htmlFor = "n_" + key;
+    var i = document.createElement("input");
+    i.type = "number";
+    i.id = "n_" + key;
+    i.value = val;
+    i.addEventListener("change", function () { snapshot(); onset(parseInt(i.value, 10) || 0); render(); });
+    w.appendChild(l); w.appendChild(i);
+    return w;
+  }
+
+  function renderInspector() {
+    var host = $("inspector");
+    host.textContent = "";
+    var c = selected();
+
+    if (!c) {
+      var g0 = document.createElement("div");
+      g0.className = "group";
+      g0.innerHTML = '<div class="group-t">Screen</div>';
+      var p = document.createElement("p");
+      p.style.cssText = "margin:0; font-size:12px; color:var(--muted)";
+      p.textContent = "Nothing selected. Click a component on the canvas.";
+      g0.appendChild(p);
+      host.appendChild(g0);
+      return;
+    }
+
+    var hd = document.createElement("div");
+    hd.className = "head";
+    hd.innerHTML = "<span>" + esc(c.name) + "</span><span>" + c.type + "</span>";
+    host.appendChild(hd);
+
+    /* geometry */
+    var g = document.createElement("div");
+    g.className = "group";
+    g.innerHTML = '<div class="group-t">Geometry</div>';
+    var xy = document.createElement("div");
+    xy.className = "xy";
+    xy.appendChild(numField("x", "X", c.x, function (v) { c.x = v; }));
+    xy.appendChild(numField("w", "W", c.w, function (v) { c.w = Math.max(4, v); }));
+    xy.appendChild(numField("y", "Y", c.y, function (v) { c.y = v; }));
+    xy.appendChild(numField("h", "H", c.h, function (v) { c.h = Math.max(4, v); }));
+    g.appendChild(xy);
+
+    var al = document.createElement("div");
+    al.className = "align-bar";
+    al.style.marginTop = "8px";
+    [["⇤","l"],["⇔","cx"],["⇥","r"],["⇡","t"],["⇕","cy"],["⇣","b"]].forEach(function (pair) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = pair[0];
+      b.title = "Align " + pair[1];
+      b.addEventListener("click", function () { snapshot(); align(c, pair[1]); render(); });
+      al.appendChild(b);
+    });
+    g.appendChild(al);
+    host.appendChild(g);
+
+    /* basic */
+    var b = document.createElement("div");
+    b.className = "group";
+    b.innerHTML = '<div class="group-t">Basic</div>';
+
+    Object.keys(c.props).forEach(function (key) {
+      var row = document.createElement("div");
+      row.className = "frow";
+      var lab = document.createElement("label");
+      lab.textContent = key;
+      lab.htmlFor = "f_" + key;
+      var inp = document.createElement("input");
+      inp.type = key === "color" ? "color" : "text";
+      inp.id = "f_" + key;
+      inp.value = c.props[key];
+      if (key === "color") { inp.style.cssText = "height:26px;padding:1px 2px"; }
+      inp.addEventListener("input", function () { c.props[key] = inp.value; render(); });
+      row.appendChild(lab); row.appendChild(inp);
+      b.appendChild(row);
+    });
+
+    var nameRow = document.createElement("div");
+    nameRow.className = "frow";
+    var nl = document.createElement("label");
+    nl.textContent = "layer name";
+    nl.htmlFor = "f_name";
+    var ni = document.createElement("input");
+    ni.type = "text"; ni.id = "f_name"; ni.value = c.name;
+    ni.addEventListener("input", function () { c.name = ni.value; renderLayers(); });
+    nameRow.appendChild(nl); nameRow.appendChild(ni);
+    b.appendChild(nameRow);
+
+    var visRow = document.createElement("div");
+    visRow.className = "frow inline";
+    var vl = document.createElement("label");
+    vl.textContent = "visible"; vl.htmlFor = "f_vis";
+    var vi = document.createElement("input");
+    vi.type = "checkbox"; vi.id = "f_vis"; vi.checked = c.vis;
+    vi.addEventListener("change", function () { c.vis = vi.checked; render(); });
+    visRow.appendChild(vl); visRow.appendChild(vi);
+    b.appendChild(visRow);
+
+    var opRow = document.createElement("div");
+    opRow.className = "frow";
+    var ol = document.createElement("label");
+    ol.textContent = "opacity  " + c.op + "%"; ol.htmlFor = "f_op";
+    var oi = document.createElement("input");
+    oi.type = "range"; oi.id = "f_op"; oi.min = "10"; oi.max = "100"; oi.step = "5"; oi.value = c.op;
+    oi.style.width = "100%";
+    oi.addEventListener("input", function () { c.op = Number(oi.value); ol.textContent = "opacity  " + c.op + "%"; render(); });
+    opRow.appendChild(ol); opRow.appendChild(oi);
+    b.appendChild(opRow);
+
+    host.appendChild(b);
+  }
+
+  function align(c, how) {
+    if (how === "l") c.x = 0;
+    if (how === "r") c.x = SCREEN_W - c.w;
+    if (how === "cx") c.x = Math.round((SCREEN_W - c.w) / 2);
+    if (how === "t") c.y = 0;
+    if (how === "b") c.y = SCREEN_H - c.h;
+    if (how === "cy") c.y = Math.round((SCREEN_H - c.h) / 2);
+  }
+
+  /* ---------- layers ---------- */
+
+  function renderLayers() {
+    var host = $("layers");
+    host.textContent = "";
+    for (var i = comps.length - 1; i >= 0; i--) {
+      (function (c) {
+        var row = document.createElement("div");
+        row.className = "layer";
+        row.setAttribute("aria-current", c.id === sel ? "true" : "false");
+
+        var eye = document.createElement("button");
+        eye.type = "button";
+        eye.className = "eye";
+        eye.textContent = c.vis ? "◉" : "○";
+        eye.title = c.vis ? "Hide" : "Show";
+        eye.setAttribute("aria-label", (c.vis ? "Hide " : "Show ") + c.name);
+        eye.addEventListener("click", function (e) { e.stopPropagation(); c.vis = !c.vis; render(); });
+
+        var nm = document.createElement("button");
+        nm.type = "button";
+        nm.className = "nm";
+        nm.style.cssText = "border:none;background:none;text-align:left;padding:0;font:inherit;color:inherit;cursor:pointer";
+        nm.textContent = c.name;
+        nm.addEventListener("click", function () { sel = c.id; render(); });
+
+        var ty = document.createElement("span");
+        ty.className = "ty";
+        ty.textContent = c.type;
+
+        row.appendChild(eye); row.appendChild(nm); row.appendChild(ty);
+        host.appendChild(row);
+      })(comps[i]);
+    }
+  }
+
+  /* ---------- toolbar ops ---------- */
+
+  $("delBtn").addEventListener("click", function () {
+    if (!sel) return;
+    snapshot();
+    comps = comps.filter(function (c) { return c.id !== sel; });
+    sel = null;
+    render();
+  });
+
+  $("dupBtn").addEventListener("click", function () {
+    var c = selected();
+    if (!c) return;
+    snapshot();
+    var copy = JSON.parse(JSON.stringify(c));
+    copy.id = "c" + seq++;
+    copy.x += 12; copy.y += 12;
+    comps.push(copy);
+    sel = copy.id;
+    render();
+  });
+
+  $("frontBtn").addEventListener("click", function () {
+    var c = selected();
+    if (!c) return;
+    snapshot();
+    comps = comps.filter(function (x) { return x.id !== c.id; });
+    comps.push(c);
+    render();
+  });
+
+  $("backBtn").addEventListener("click", function () {
+    var c = selected();
+    if (!c) return;
+    snapshot();
+    comps = comps.filter(function (x) { return x.id !== c.id; });
+    comps.unshift(c);
+    render();
+  });
+
+  $("undoBtn").addEventListener("click", function () {
+    if (!history.length) return;
+    comps = JSON.parse(history.pop());
+    sel = null;
+    render();
+  });
+
+  $("resetBtn").addEventListener("click", function () {
+    snapshot(); comps = seed(); sel = null; seq = 8; render();
+  });
+
+  $("zoom").addEventListener("change", function (e) { zoom = Number(e.target.value); render(); });
+  $("search").addEventListener("input", function (e) { buildLibrary(e.target.value); });
+
+  document.addEventListener("keydown", function (e) {
+    if (!$("drawer").hidden) { if (e.key === "Escape") $("drawer").hidden = true; return; }
+    var c = selected();
+    if (!c) return;
+    var tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "select" || tag === "textarea") return;
+
+    var step = e.shiftKey ? 10 : 1;
+    if (e.key === "ArrowLeft")  { c.x -= step; e.preventDefault(); render(); }
+    if (e.key === "ArrowRight") { c.x += step; e.preventDefault(); render(); }
+    if (e.key === "ArrowUp")    { c.y -= step; e.preventDefault(); render(); }
+    if (e.key === "ArrowDown")  { c.y += step; e.preventDefault(); render(); }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      snapshot();
+      comps = comps.filter(function (x) { return x.id !== sel; });
+      sel = null; e.preventDefault(); render();
+    }
+  });
+
+  /* ---------- codegen ---------- */
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function ident(s) {
+    var v = String(s).replace(/[^A-Za-z0-9]+/g, " ").trim().split(" ")
+      .map(function (w, i) { return i ? cap(w) : w.toLowerCase(); }).join("");
+    return v || "field";
+  }
+
+  function pct(v, of) { return Math.round((v / of) * 1000) / 10; }
+  function frac(v, of) { return (Math.round((v / of) * 1000) / 1000).toFixed(3); }
+
+  function key(c) { return c.type + "_" + c.id.replace("c", ""); }
+
+  function contract() {
+    var vis = comps.filter(function (c) { return c.vis; });
+    var components = {};
+
+    vis.forEach(function (c) {
+      components[key(c)] = {
+        id: c.id,
+        type: c.type,
+        color: c.props.color,
+        schema: c.props.schema,
+        caption: c.props.caption,
+        bind: c.props.state ? ident(c.props.state) : null,
+        action: c.props.action ? ident(c.props.action) : null,
+        // relative to the viewport, so the same record drives any screen size
+        rect: { x: pct(c.x, SCREEN_W), y: pct(c.y, SCREEN_H), w: pct(c.w, SCREEN_W), h: pct(c.h, SCREEN_H), unit: "%" },
+        opacity: c.op / 100
+      };
+    });
+
+    return {
+      version: 1,
+      checkpoint: "cp_" + String(checkpoint).padStart(3, "0"),
+      screen: "Home",
+      reference: { w: SCREEN_W, h: SCREEN_H, unit: "dp" },
+      layout: "relative",
+      state: vis.filter(function (c) { return c.props.state; })
+                .map(function (c) { return { name: ident(c.props.state), type: c.props.schema }; }),
+      actions: vis.filter(function (c) { return c.props.action; })
+                  .map(function (c) { return ident(c.props.action); }),
+      components: components
+    };
+  }
+
+  function ktNode(c) {
+    // relative: fractions of the parent, resolved at layout time inside
+    // BoxWithConstraints - so the same record works on any screen size.
+    var m = 'Modifier.rel(' + frac(c.x, SCREEN_W) + 'f, ' + frac(c.y, SCREEN_H) + 'f, ' +
+            frac(c.w, SCREEN_W) + 'f, ' + frac(c.h, SCREEN_H) + 'f)';
+    var p = c.props;
+    if (c.type === "heading") return '    Text("' + p.caption + '", ' + m + ', style = MaterialTheme.typography.headlineSmall)';
+    if (c.type === "text")    return '    Text("' + p.caption + '", ' + m + ', style = MaterialTheme.typography.bodyMedium)';
+    if (c.type === "button")  return '    Button(onClick = ' + ident(p.action) + ', modifier = ' + m + ') { Text("' + p.caption + '") }';
+    if (c.type === "input")   return '    OutlinedTextField(\n      value = state.' + ident(p.state) + ',\n      onValueChange = on' + cap(ident(p.state)) + 'Change,\n      label = { Text("' + p.caption + '") },\n      modifier = ' + m + ',\n    )';
+    if (c.type === "switch")  return '    Switch(checked = state.' + ident(p.state) + ', onCheckedChange = on' + cap(ident(p.state)) + 'Change, modifier = ' + m + ')';
+    if (c.type === "card")    return '    Card(' + m + ') { Text("' + p.caption + '", Modifier.padding(12.dp)) }';
+    if (c.type === "image")   return '    AsyncImage(model = state.' + ident(p.state) + ', contentDescription = "' + p.caption + '", modifier = ' + m + ')';
+    if (c.type === "icon")    return '    Icon(Icons.Default.Notifications, contentDescription = "' + p.caption + '", modifier = ' + m + ')';
+    if (c.type === "alert")   return '    AlertCard(text = "' + p.caption + '", modifier = ' + m + ')   // TODO: agent supplies AlertCard';
+    return '    LazyColumn(' + m + ') { items(state.' + ident(p.state) + ') { ListRow(it) } }';
+  }
+
+  function htmlNode(c) {
+    // No inline geometry - all of it lives in the generated .css, keyed by the
+    // same component id the contract uses.
+    var k = 'class="c ' + key(c) + '"';
+    var p = c.props;
+    if (c.type === "heading") return "  <h1 " + k + ">" + esc(p.caption) + "</h1>";
+    if (c.type === "text")    return "  <p " + k + ">" + esc(p.caption) + "</p>";
+    if (c.type === "button")  return "  <button " + k + ' type="button" data-action="' + ident(p.action) + '">' + esc(p.caption) + "</button>";
+    if (c.type === "input")   return "  <input " + k + ' name="' + ident(p.state) + '" placeholder="' + esc(p.caption) + '" data-bind="' + ident(p.state) + '">';
+    if (c.type === "switch")  return "  <input " + k + ' type="checkbox" data-bind="' + ident(p.state) + '" aria-label="' + esc(p.caption) + '">';
+    if (c.type === "card")    return "  <div " + k + ">" + esc(p.caption) + "</div>";
+    if (c.type === "image")   return "  <img " + k + ' data-bind="' + ident(p.state) + '" alt="' + esc(p.caption) + '">';
+    if (c.type === "icon")    return "  <span " + k + ' aria-label="' + esc(p.caption) + '"></span>';
+    if (c.type === "alert")   return "  <div " + k + ' role="alert">' + esc(p.caption) + "</div>";
+    return "  <ul " + k + ' data-source="' + ident(p.state) + '"></ul>';
+  }
+
+  function cssNode(c) {
+    var lines = [];
+    lines.push("." + key(c) + " {");
+    lines.push("  left:   " + pct(c.x, SCREEN_W) + "%;");
+    lines.push("  top:    " + pct(c.y, SCREEN_H) + "%;");
+    lines.push("  width:  " + pct(c.w, SCREEN_W) + "%;");
+    lines.push("  height: " + pct(c.h, SCREEN_H) + "%;");
+    if (c.type === "button" || c.type === "switch" || c.type === "icon" || c.type === "card" || c.type === "image") {
+      lines.push("  background: " + c.props.color + ";");
+    } else {
+      lines.push("  color: " + c.props.color + ";");
+    }
+    if (c.op !== 100) lines.push("  opacity: " + (c.op / 100) + ";");
+    lines.push("}");
+    return lines.join("\n");
+  }
+
+  function paint() {
+    var out = $("out");
+    var c = contract();
+    var vis = comps.filter(function (x) { return x.vis; });
+
+    if (panel === "contract") { out.textContent = JSON.stringify(c, null, 2); return; }
+
+    if (panel === "kt") {
+      var k = [];
+      k.push("// GENERATED FROM contract " + c.checkpoint + " — DO NOT EDIT");
+      k.push("// Rewritten wholesale on every [Generate]. Behaviour goes in Home.kt");
+      k.push("");
+      k.push("package com.ikk.ui.generated");
+      k.push("");
+      k.push("@Composable");
+      k.push("fun HomeLayout(");
+      k.push("  state: HomeState,");
+      c.state.forEach(function (s) {
+        k.push("  on" + cap(s.name) + "Change: (" + ktType(s.type) + ") -> Unit,");
+      });
+      c.actions.forEach(function (a) { k.push("  " + a + ": () -> Unit,"); });
+      k.push(") = BoxWithConstraints(Modifier.fillMaxSize()) {");
+      k.push("  // layout = relative. Every rect is a fraction of this box, so the");
+      k.push("  // same contract lays out on any screen size.");
+      k.push("  fun Modifier.rel(x: Float, y: Float, w: Float, h: Float) = this");
+      k.push("    .offset(maxWidth * x, maxHeight * y)");
+      k.push("    .size(maxWidth * w, maxHeight * h)");
+      k.push("");
+      vis.forEach(function (n) { k.push(ktNode(n)); });
+      k.push("}");
+      k.push("");
+      k.push("data class HomeState(");
+      c.state.forEach(function (s) {
+        k.push("  val " + s.name + ": " + ktType(s.type) + " = " + ktDefault(s.type) + ",");
+      });
+      k.push(")");
+      out.textContent = k.join("\n");
+      return;
+    }
+
+    if (panel === "html") {
+      var h = [];
+      h.push("<!-- GENERATED FROM contract " + c.checkpoint + " — DO NOT EDIT -->");
+      h.push('<link rel="stylesheet" href="home.generated.css">');
+      h.push("");
+      h.push('<section class="screen" data-screen="Home">');
+      vis.forEach(function (n) { h.push(htmlNode(n)); });
+      h.push("</section>");
+      out.textContent = h.join("\n");
+      return;
+    }
+
+    if (panel === "css") {
+      var cs = [];
+      cs.push("/* GENERATED FROM contract " + c.checkpoint + " — DO NOT EDIT");
+      cs.push("   Same component keys and the same fractions as the Kotlin.");
+      cs.push("   Reference viewport " + SCREEN_W + " × " + SCREEN_H + ", but every value is relative. */");
+      cs.push("");
+      cs.push(".screen {");
+      cs.push("  position: relative;");
+      cs.push("  aspect-ratio: " + SCREEN_W + " / " + SCREEN_H + ";");
+      cs.push("  width: 100%;");
+      cs.push("}");
+      cs.push("");
+      cs.push(".c { position: absolute; margin: 0; }");
+      cs.push("");
+      vis.forEach(function (n) { cs.push(cssNode(n)); cs.push(""); });
+      out.textContent = cs.join("\n");
+      return;
+    }
+
+    var s = [];
+    s.push("CHECKPOINT  " + c.checkpoint);
+    s.push("");
+    s.push("[Generate] just wrote the two generated files and cut a checkpoint.");
+    s.push("Everything above this line is reproducible from the contract alone.");
+    s.push("Everything below is optimisation the agent layers on top, and it is");
+    s.push("all discardable — reset to " + c.checkpoint + " and regenerate.");
+    s.push("");
+    s.push("────────── checkpoint ──────────");
+    s.push("");
+    var i = 1;
+    c.state.forEach(function (st) {
+      s.push("  " + String(i++).padStart(2, "0") + ".  wire on" + cap(st.name) + "Change → HomeState." + st.name);
+      s.push("        gate: compiles + contract conformance");
+    });
+    c.actions.forEach(function (a) {
+      s.push("  " + String(i++).padStart(2, "0") + ".  implement " + a + "()");
+      s.push("        gate: compiles + unit test");
+    });
+    vis.filter(function (x) { return x.type === "alert"; }).forEach(function () {
+      s.push("  " + String(i++).padStart(2, "0") + ".  supply AlertCard(text, modifier)");
+      s.push("        gate: compiles + renders");
+    });
+    vis.filter(function (x) { return x.type === "list"; }).forEach(function (n) {
+      s.push("  " + String(i++).padStart(2, "0") + ".  supply ListRow(item) for " + ident(n.props.state));
+      s.push("        gate: compiles + renders 0/1/many");
+    });
+    s.push("  " + String(i++).padStart(2, "0") + ".  optimise: collapse stacked rects into Column/Row where");
+    s.push("        the relative rects are already flow-shaped");
+    s.push("        gate: render diff vs " + c.checkpoint + " must be empty");
+    s.push("");
+    s.push("Writes to   Home.kt             ← agent owns, survives regeneration");
+    s.push("Never to    Home.generated.kt   ← codegen owns, replaced each run");
+    s.push("            home.generated.css  ← codegen owns, replaced each run");
+    out.textContent = s.join("\n");
+  }
+
+  function ktType(schema) {
+    if (schema === "Boolean") return "Boolean";
+    if (schema === "Url") return "String";
+    if (schema && schema.indexOf("List<") === 0) return schema;
+    return "String";
+  }
+  function ktDefault(schema) {
+    if (schema === "Boolean") return "false";
+    if (schema && schema.indexOf("List<") === 0) return "emptyList()";
+    return '""';
+  }
+
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-p]");
+    if (!b) return;
+    panel = b.dataset.p;
+    var all = this.querySelectorAll("button");
+    for (var i = 0; i < all.length; i++) all[i].setAttribute("aria-selected", all[i] === b ? "true" : "false");
+    paint();
+  });
+
+  $("genBtn").addEventListener("click", function () {
+    checkpoint += 1;
+    $("drawer").hidden = false; paint(); $("closeBtn").focus();
+  });
+  $("closeBtn").addEventListener("click", function () { $("drawer").hidden = true; });
+  $("drawer").addEventListener("click", function (e) { if (e.target === this) this.hidden = true; });
+
+  $("themeBtn").addEventListener("click", function () {
+    var root = document.documentElement;
+    var cur = root.getAttribute("data-theme");
+    var dark = cur ? cur === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.setAttribute("data-theme", dark ? "light" : "dark");
+  });
+
+  buildLibrary("");
+  render();
+})();
+</script>

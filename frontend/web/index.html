@@ -1,0 +1,547 @@
+<title>Android Frame Harness</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #E7E8EA;
+    --panel: #FFFFFF;
+    --panel-2: #F1F2F4;
+    --ink: #17191C;
+    --muted: #5D666E;
+    --line: #D1D5D9;
+    --accent: #2A5DB0;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #DEE7F5;
+    --bezel: #202326;
+    --bezel-edge: #34383C;
+
+    /* Android surface tokens - Material 3 baseline, light */
+    --sys-surface: #FEF7FF;
+    --sys-on-surface: #1D1B20;
+    --sys-surface-container: #F3EDF7;
+    --sys-primary: #65558F;
+    --sys-on-primary: #FFFFFF;
+    --sys-outline: #79747E;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #101214;
+      --panel: #1A1D1F;
+      --panel-2: #222629;
+      --ink: #E4E8EA;
+      --muted: #929CA3;
+      --line: #2E3438;
+      --accent: #85AAEA;
+      --accent-ink: #0A1A31;
+      --accent-soft: #16243A;
+      --bezel: #0A0B0C;
+      --bezel-edge: #26292C;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #101214;
+    --panel: #1A1D1F;
+    --panel-2: #222629;
+    --ink: #E4E8EA;
+    --muted: #929CA3;
+    --line: #2E3438;
+    --accent: #85AAEA;
+    --accent-ink: #0A1A31;
+    --accent-soft: #16243A;
+    --bezel: #0A0B0C;
+    --bezel-edge: #26292C;
+  }
+
+  /* The device's own theme is independent of the page theme - that is the
+     point of a harness. Toggled by [data-device-theme] on .device. */
+  .device[data-device-theme="dark"] {
+    --sys-surface: #141218;
+    --sys-on-surface: #E6E0E9;
+    --sys-surface-container: #211F26;
+    --sys-primary: #D0BCFE;
+    --sys-on-primary: #381E72;
+    --sys-outline: #938F99;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Roboto", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, select { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    min-height: 100%;
+  }
+
+  /* ---------- stage ---------- */
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 28px 20px 34px;
+    min-width: 0;
+  }
+
+  .stage-title {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* ---------- the device ---------- */
+
+  .device {
+    /* --dp-w / --dp-h are the density-independent pixels Android reports.
+       --scale maps them onto CSS px so the frame fits the stage. */
+    --dp-w: 412;
+    --dp-h: 915;
+    --scale: 0.72;
+    --status-h: 28;
+    --gesture-h: 24;
+
+    width: calc(var(--dp-w) * var(--scale) * 1px);
+    height: calc(var(--dp-h) * var(--scale) * 1px);
+    max-width: 100%;
+    background: var(--bezel);
+    border: 1px solid var(--bezel-edge);
+    border-radius: calc(30px * var(--scale) + 6px);
+    padding: calc(8px * var(--scale) + 3px);
+    box-shadow: 0 2px 6px rgba(10, 14, 18, .22), 0 22px 50px rgba(10, 14, 18, .26);
+    flex: 0 0 auto;
+  }
+
+  .screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: calc(24px * var(--scale));
+    overflow: hidden;
+    background: var(--sys-surface);
+    color: var(--sys-on-surface);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    font-size: calc(14px * var(--scale));
+  }
+
+  /* ---------- system bars ---------- */
+
+  .status-bar {
+    height: calc(var(--status-h) * var(--scale) * 1px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 calc(16px * var(--scale));
+    font-size: calc(12px * var(--scale));
+    font-weight: 500;
+    color: var(--sys-on-surface);
+    background: var(--sys-surface);
+    flex: 0 0 auto;
+  }
+
+  .status-icons { display: flex; align-items: center; gap: calc(5px * var(--scale)); }
+  .status-icons span {
+    display: block;
+    background: currentColor;
+    border-radius: 1px;
+  }
+  .ic-signal { width: calc(11px * var(--scale)); height: calc(9px * var(--scale)); clip-path: polygon(0 100%, 100% 0, 100% 100%); }
+  .ic-wifi { width: calc(11px * var(--scale)); height: calc(9px * var(--scale)); clip-path: polygon(50% 100%, 0 30%, 100% 30%); }
+  .ic-batt { width: calc(17px * var(--scale)); height: calc(9px * var(--scale)); border-radius: calc(2px * var(--scale)); }
+
+  .gesture-bar {
+    height: calc(var(--gesture-h) * var(--scale) * 1px);
+    display: grid;
+    place-items: center;
+    background: var(--sys-surface);
+    flex: 0 0 auto;
+  }
+  .gesture-bar i {
+    display: block;
+    width: calc(108px * var(--scale));
+    height: calc(4px * var(--scale));
+    border-radius: calc(2px * var(--scale));
+    background: var(--sys-on-surface);
+    opacity: .82;
+  }
+
+  /* ---------- the content slot ---------- */
+
+  .slot {
+    position: relative;
+    min-height: 0;
+    overflow: auto;
+    background: var(--sys-surface);
+  }
+
+  /* Placeholder screen. Replace this subtree with the Wasm canvas, the React
+     root, or an iframe - the frame around it does not change. */
+  .demo {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: calc(14px * var(--scale));
+    padding: calc(20px * var(--scale));
+  }
+
+  .demo-top {
+    display: flex;
+    align-items: center;
+    gap: calc(12px * var(--scale));
+  }
+  .demo-top h1 {
+    margin: 0;
+    font-size: calc(22px * var(--scale));
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .demo-hero {
+    flex: 1 1 auto;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: calc(16px * var(--scale));
+  }
+  .demo-hero p {
+    margin: 0;
+    font-size: calc(24px * var(--scale));
+    font-weight: 400;
+  }
+
+  .demo-card {
+    background: var(--sys-surface-container);
+    border-radius: calc(12px * var(--scale));
+    padding: calc(14px * var(--scale));
+    font-size: calc(13px * var(--scale));
+    line-height: 1.5;
+  }
+  .demo-card b { font-weight: 500; }
+
+  .demo-fab {
+    align-self: flex-end;
+    background: var(--sys-primary);
+    color: var(--sys-on-primary);
+    border: none;
+    border-radius: calc(16px * var(--scale));
+    height: calc(52px * var(--scale));
+    min-width: calc(52px * var(--scale));
+    padding: 0 calc(18px * var(--scale));
+    font-size: calc(14px * var(--scale));
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .28);
+  }
+
+  /* ---------- inset overlay ---------- */
+
+  .insets {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: none;
+  }
+  .screen.show-insets .insets { display: block; }
+  .insets i {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(42, 93, 176, .26) 0 6px,
+      rgba(42, 93, 176, .08) 6px 12px
+    );
+    border-block: 1px solid rgba(42, 93, 176, .55);
+  }
+  .insets .top { top: 0; height: calc(var(--status-h) * var(--scale) * 1px); }
+  .insets .bottom { bottom: 0; height: calc(var(--gesture-h) * var(--scale) * 1px); }
+
+  /* ---------- controls ---------- */
+
+  .controls {
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    padding-block: 4px;
+    overflow-y: auto;
+  }
+
+  .group { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+
+  .group-label {
+    display: block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 9px;
+  }
+
+  select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+  }
+  select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+  .seg { display: flex; gap: 6px; }
+  .seg button {
+    flex: 1 1 0;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .seg button:hover { background: var(--panel); }
+  .seg button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .slider-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: center; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+  .metrics { margin: 0; font-size: 12px; }
+  .metrics div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 0;
+  }
+  .metrics dt { color: var(--muted); }
+  .metrics dd {
+    margin: 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 14px 16px;
+    border-left: 2px solid var(--accent);
+    margin: 14px 16px;
+    background: var(--panel-2);
+    border-radius: 0 6px 6px 0;
+  }
+  .hint code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    background: var(--panel);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .controls { border-left: none; border-top: 1px solid var(--line); }
+    .stage { padding: 20px 16px 24px; }
+    .hint { margin: 14px 16px; }
+  }
+</style>
+
+<div class="layout">
+  <main class="stage">
+    <p class="stage-title" id="stageTitle">Pixel 7 &middot; 412 &times; 915 dp</p>
+
+    <div class="device" id="device" data-device-theme="light">
+      <div class="screen" id="screen">
+
+        <div class="status-bar">
+          <span id="clock">10:57</span>
+          <span class="status-icons">
+            <span class="ic-signal"></span>
+            <span class="ic-wifi"></span>
+            <span class="ic-batt"></span>
+          </span>
+        </div>
+
+        <div class="slot" id="slot">
+          <!-- Content slot. Swap this subtree for the real UI. -->
+          <div class="demo">
+            <div class="demo-top">
+              <h1>IKK</h1>
+            </div>
+            <div class="demo-hero">
+              <p id="demoGreeting">Hello, World!</p>
+            </div>
+            <div class="demo-card">
+              <b>Placeholder screen.</b> This is plain HTML standing in for the
+              real UI, so the frame can be worked on before the app is ready.
+              Replace <b>.demo</b> with the Wasm canvas, a React root, or an
+              iframe.
+            </div>
+            <button class="demo-fab" type="button">Generate</button>
+          </div>
+        </div>
+
+        <div class="gesture-bar"><i></i></div>
+
+        <div class="insets" aria-hidden="true">
+          <i class="top"></i>
+          <i class="bottom"></i>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <aside class="controls" aria-label="Frame controls">
+    <div class="group">
+      <label class="group-label" for="deviceSel">Device</label>
+      <select id="deviceSel">
+        <option value="412,915,28,24" selected>Pixel 7 — 412 × 915 dp</option>
+        <option value="360,800,24,24">Compact phone — 360 × 800 dp</option>
+        <option value="448,998,28,24">Pixel 9 Pro XL — 448 × 998 dp</option>
+        <option value="600,960,24,24">Foldable, inner — 600 × 960 dp</option>
+        <option value="800,1280,24,0">Tablet — 800 × 1280 dp</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <span class="group-label">Device theme</span>
+      <div class="seg" id="deviceTheme">
+        <button type="button" data-v="light" aria-pressed="true">Light</button>
+        <button type="button" data-v="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <label class="group-label" for="scaleInput">Scale</label>
+      <div class="slider-row">
+        <input type="range" id="scaleInput" min="40" max="110" step="5" value="72">
+        <span id="scaleOut" style="font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums">72%</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="group-label">Overlay</span>
+      <div class="seg">
+        <button type="button" id="insetBtn" aria-pressed="false">Show insets</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <span class="group-label">Reported metrics</span>
+      <dl class="metrics">
+        <div><dt>Viewport</dt><dd id="mViewport">412 × 915 dp</dd></div>
+        <div><dt>Content</dt><dd id="mContent">412 × 863 dp</dd></div>
+        <div><dt>Status inset</dt><dd id="mStatus">28 dp</dd></div>
+        <div><dt>Gesture inset</dt><dd id="mGesture">24 dp</dd></div>
+        <div><dt>Width class</dt><dd id="mClass">Compact</dd></div>
+      </dl>
+    </div>
+
+    <p class="hint">
+      Width class follows the Material 3 window size classes Android uses to
+      pick a layout: <code>Compact</code> below 600 dp, <code>Medium</code> to
+      840, <code>Expanded</code> above. Cross a boundary and the real app is
+      expected to change layout, not just scale.
+    </p>
+  </aside>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var device = $("device");
+  var screenEl = $("screen");
+
+  var state = { w: 412, h: 915, status: 28, gesture: 24, scale: 0.72 };
+
+  function widthClass(dp) {
+    if (dp < 600) return "Compact";
+    if (dp < 840) return "Medium";
+    return "Expanded";
+  }
+
+  function apply() {
+    device.style.setProperty("--dp-w", state.w);
+    device.style.setProperty("--dp-h", state.h);
+    device.style.setProperty("--status-h", state.status);
+    device.style.setProperty("--gesture-h", state.gesture);
+    device.style.setProperty("--scale", state.scale);
+
+    var content = state.h - state.status - state.gesture;
+
+    $("mViewport").textContent = state.w + " × " + state.h + " dp";
+    $("mContent").textContent = state.w + " × " + content + " dp";
+    $("mStatus").textContent = state.status + " dp";
+    $("mGesture").textContent = state.gesture + " dp";
+    $("mClass").textContent = widthClass(state.w);
+
+    var label = $("deviceSel").selectedOptions[0].textContent.split("—")[0].trim();
+    $("stageTitle").textContent = label + " · " + state.w + " × " + state.h + " dp";
+  }
+
+  $("deviceSel").addEventListener("change", function (e) {
+    var parts = e.target.value.split(",").map(Number);
+    state.w = parts[0];
+    state.h = parts[1];
+    state.status = parts[2];
+    state.gesture = parts[3];
+    apply();
+  });
+
+  $("deviceTheme").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-v]");
+    if (!btn) return;
+    var buttons = this.querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute("aria-pressed", buttons[i] === btn ? "true" : "false");
+    }
+    device.setAttribute("data-device-theme", btn.dataset.v);
+  });
+
+  $("scaleInput").addEventListener("input", function (e) {
+    state.scale = Number(e.target.value) / 100;
+    $("scaleOut").textContent = e.target.value + "%";
+    apply();
+  });
+
+  $("insetBtn").addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") === "true";
+    this.setAttribute("aria-pressed", on ? "false" : "true");
+    this.textContent = on ? "Show insets" : "Hide insets";
+    screenEl.classList.toggle("show-insets", !on);
+  });
+
+  function tick() {
+    var d = new Date();
+    $("clock").textContent = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+  tick();
+  setInterval(tick, 30000);
+
+  apply();
+})();
+</script>
