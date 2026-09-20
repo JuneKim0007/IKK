@@ -25,11 +25,11 @@ gradle/        shared Gradle infrastructure
 
 ## Generated and authored code
 
-When codegen is merged, it belongs under `tools/codegen/`. Its outputs belong
-inside the consuming app and must include `.generated.` in the filename.
+Codegen lives under `packages/codegen/`. Its outputs belong inside the
+consuming app and must include `.generated.` in the filename.
 
 ```text
-tools/codegen/                                      generator and tests
+packages/codegen/                                   generator and tests
 apps/web/src/generated/Home.generated.css          generated Web layout
 apps/android/app/src/main/kotlin/.../Home.generated.kt
 apps/web/src/.../Home.ts                            authored behaviour
@@ -39,6 +39,12 @@ apps/android/app/src/main/kotlin/.../Home.kt        authored behaviour
 Codegen may replace generated files wholesale. It must never write authored
 files. An AI agent may propose authored changes through a reviewed branch, but
 must not become a second writer for generated artifacts.
+
+## Doc filenames
+
+Hyphenated, lowercase — `frontend-architecture.md`, `repository-layout.md`,
+`roadmap-frontend.md`. Not `snake_case`, not `camelCase`. One convention,
+repo-wide, so a filename can be guessed instead of grepped for.
 
 ## Build ownership
 

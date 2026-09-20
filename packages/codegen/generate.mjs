@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { promises as fs } from "node:fs";
+import { promises as fs, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -10,6 +10,14 @@ const DEFAULT_PATHS = {
   css: path.join(CODEGEN_DIR, "generated", "web", "home.generated.css"),
   kotlin: path.join(CODEGEN_DIR, "generated", "android", "HomeLayout.generated.kt"),
 };
+
+// Canonical rel() body — the one formula that maps contract fractions onto a
+// BoxWithConstraints. docs/architecture/frontend-android.md requires the
+// Android editor's own canvas to use this exact function, not a second
+// hand-written copy: two independently written versions of this arithmetic
+// is the most likely divergence bug in the project (json_contract.md §1).
+const REL_TEMPLATE_PATH = path.join(CODEGEN_DIR, "templates", "rel.kt.txt");
+const REL_KT_LINES = readFileSync(REL_TEMPLATE_PATH, "utf8").replace(/\n$/, "").split("\n");
 
 const NODE_TYPES = new Set(["rect", "text", "ellipse", "image"]);
 // docs/json_contract.md §9 — three values, not five. start/end are
@@ -467,9 +475,7 @@ export function generateKotlin(contract) {
     "    BoxWithConstraints(",
     `        modifier = modifier.aspectRatio(${kotlinFloat(contract.reference.w)} / ${kotlinFloat(contract.reference.h)}),`,
     "    ) {",
-    "        fun Modifier.rel(x: Float, y: Float, w: Float, h: Float) = this",
-    "            .offset(x = maxWidth * x, y = maxHeight * y)",
-    "            .size(width = maxWidth * w, height = maxHeight * h)",
+    ...indent(REL_KT_LINES, 8),
     "",
   );
 

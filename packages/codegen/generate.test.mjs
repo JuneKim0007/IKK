@@ -115,3 +115,24 @@ test("rejects ambiguous or unsupported contract values", () => {
     (error) => error instanceof ContractError && /visible/.test(error.message),
   );
 });
+
+test("emits the canonical rel() from templates/rel.kt.txt verbatim, indented 8", async () => {
+  const contract = await exampleContract();
+  const generated = generateKotlin(contract);
+  const template = await readFile(path.join(HERE, "templates", "rel.kt.txt"), "utf8");
+  const expectedLines = template
+    .replace(/\n$/, "")
+    .split("\n")
+    .map((line) => " ".repeat(8) + line);
+
+  // docs/architecture/frontend-android.md §1: this is the one formula the
+  // Android editor's own canvas must also use. If this test ever fails after
+  // editing generate.mjs's Kotlin emission by hand instead of the template,
+  // that is the bug this test exists to catch.
+  for (const line of expectedLines) {
+    assert.ok(
+      generated.includes(line),
+      `generated Kotlin is missing the canonical rel() line: ${JSON.stringify(line)}`,
+    );
+  }
+});
