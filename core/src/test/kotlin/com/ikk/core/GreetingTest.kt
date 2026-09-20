@@ -1,4 +1,4 @@
-package com.ikk
+package com.ikk.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

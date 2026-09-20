@@ -37,13 +37,33 @@ adb shell am start -n com.ikk/.MainActivity
 
 ```text
 IKK/
-├── settings.gradle.kts     defines which modules are in the build
-├── build.gradle.kts        shared config for all modules
+├── settings.gradle.kts         declares the modules in the build
+├── build.gradle.kts            plugin versions, applied per module
 ├── gradle/libs.versions.toml   dependency versions
-└── app/                    the Android application module
-    ├── build.gradle.kts
-    └── src/{main,test,androidTest}/kotlin/com/ikk/
+├── docs/
+├── app/     Android application - Activity, Compose UI, wiring
+├── data/    Android library - repositories and data sources
+└── core/    plain Kotlin/JVM - pure logic, no Android dependency
 ```
 
 The Gradle files at the root are the build's entry point and have to live
-there. Code organisation happens inside modules, and by adding modules.
+there; Gradle finds the build by locating `settings.gradle.kts`.
+
+Dependencies point downward only:
+
+```text
+app  ->  data  ->  core
+```
+
+`core` deliberately does not apply an Android plugin. Referencing
+`android.*` from it fails compilation rather than passing review, and its
+tests run on the desktop JVM with no emulator. Add feature modules alongside
+`app` as features arrive; there is no reason to create empty ones now.
+
+Per-module tests:
+
+```sh
+./gradlew :core:test                 # fastest, pure JVM
+./gradlew :data:testDebugUnitTest
+./gradlew test                       # everything
+```
