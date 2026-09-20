@@ -17,6 +17,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 SCHEMA_VERSION = 1
 
+
+def slug(raw: str) -> str:
+    parts = [p for p in re.split(r"[^A-Za-z0-9]+", raw.strip()) if p]
+    if not parts:
+        return "unnamed"
+    return parts[0].lower() + "".join(p.lower().capitalize() for p in parts[1:])
+
 _COLOR = re.compile(r"^#[0-9A-F]{6}([0-9A-F]{2})?$")
 _KEY = re.compile(r"^(rect|ellipse|text|image)_\d+$")
 
@@ -97,6 +104,7 @@ class NodeBase(Strict):
     """§4 — every node carries the full envelope, whatever its type."""
 
     id: str
+    name: str
     z: int
     visible: bool = True
     opacity: float = 1.0
@@ -110,8 +118,8 @@ class NodeBase(Strict):
 
     @property
     def key(self) -> str:
-        digits = "".join(c for c in self.id if c.isdigit()) or self.id
-        return f"{self.type}_{digits}"  # type: ignore[attr-defined]
+        """§4.1 — derived from the designer-facing name, not the id."""
+        return f"{self.type}_{slug(self.name)}"  # type: ignore[attr-defined]
 
     # Capability predicates — which inspector controls a surface should show.
     accepts_text: bool = True

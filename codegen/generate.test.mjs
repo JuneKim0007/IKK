@@ -54,7 +54,7 @@ test("generates stable Compose Kotlin from the same contract", async () => {
 
 test("escapes Kotlin strings instead of emitting executable interpolation", () => {
   const contract = normalizeContract({
-    version: 1,
+    schemaVersion: 1,
     checkpoint: "cp_escape",
     screen: "Escapes",
     reference: { w: 100, h: 100, unit: "dp" },
@@ -85,7 +85,7 @@ test("escapes Kotlin strings instead of emitting executable interpolation", () =
 test("rejects ambiguous or unsupported contract values", () => {
   assert.throws(
     () => normalizeContract({
-      version: 1,
+      schemaVersion: 1,
       checkpoint: "cp_bad",
       screen: "Bad",
       reference: { w: 375, h: 667, unit: "px" },
@@ -97,7 +97,7 @@ test("rejects ambiguous or unsupported contract values", () => {
 
   assert.throws(
     () => normalizeContract({
-      version: 1,
+      schemaVersion: 1,
       checkpoint: "cp_bad_visible",
       screen: "Bad",
       reference: { w: 375, h: 667, unit: "dp" },

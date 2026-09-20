@@ -15,6 +15,7 @@ import java.time.Instant
 @Serializable
 sealed class DesignNode {
     abstract val id: String
+    abstract val name: String
     abstract val z: Int
     abstract val visible: Boolean
     abstract val opacity: Double
@@ -49,17 +50,29 @@ sealed class DesignNode {
         require(opacity in 0.0..1.0) { "opacity must be in 0.0..1.0, got $opacity" }
         require(rect.w > 0 && rect.h > 0) { "rect must have positive size, got ${rect.w}x${rect.h}" }
         require(version >= 1) { "version must be >= 1, got $version" }
+        require(name.isNotBlank()) { "name must not be blank (V13)" }
     }
 
-    private fun suffix(): String = id.filter { it.isDigit() }.ifEmpty { id }
+    /** §4.1 — the key is derived from the designer-facing name, not from the id. */
+    protected fun keyFor(type: String): String = "${type}_${slug(name)}"
 
-    protected fun keyFor(type: String): String = "${type}_${suffix()}"
+    companion object {
+        fun slug(raw: String): String {
+            val parts = raw.trim().split(Regex("[^A-Za-z0-9]+")).filter { it.isNotEmpty() }
+            if (parts.isEmpty()) return "unnamed"
+            return parts.first().lowercase() +
+                parts.drop(1).joinToString("") { w ->
+                    w.lowercase().replaceFirstChar { it.uppercase() }
+                }
+        }
+    }
 }
 
 @Serializable
 @SerialName("rect")
 data class RectNode(
     override val id: String,
+    override val name: String,
     override val z: Int,
     override val visible: Boolean = true,
     override val opacity: Double = 1.0,
@@ -89,6 +102,7 @@ data class RectNode(
 @SerialName("ellipse")
 data class EllipseNode(
     override val id: String,
+    override val name: String,
     override val z: Int,
     override val visible: Boolean = true,
     override val opacity: Double = 1.0,
@@ -120,6 +134,7 @@ data class EllipseNode(
 @SerialName("text")
 data class TextNode(
     override val id: String,
+    override val name: String,
     override val z: Int,
     override val visible: Boolean = true,
     override val opacity: Double = 1.0,
@@ -158,6 +173,7 @@ data class TextNode(
 @SerialName("image")
 data class ImageNode(
     override val id: String,
+    override val name: String,
     override val z: Int,
     override val visible: Boolean = true,
     override val opacity: Double = 1.0,

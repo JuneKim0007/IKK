@@ -90,8 +90,9 @@ Every component, whatever its type, has this shape:
 
 ```json
 {
-  "id": "n7",
+  "id": "0b4c1e6a-6f9d-4e27-9a3e-1f2c5d7e8a90",
   "type": "rect",
+  "name": "Sign in",
   "z": 3,
   "visible": true,
   "opacity": 1.0,
@@ -107,8 +108,9 @@ Every component, whatever its type, has this shape:
 
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `id` | string | ✔ | — | Stable, never reused, opaque |
+| `id` | string | ✔ | — | UUID. Stable, never reused, never shown |
 | `type` | enum | ✔ | — | `rect` · `ellipse` · `text` · `image` |
+| `name` | string | ✔ | — | Designer-facing. Unique within scope. §4.1 |
 | `z` | int | ✔ | — | Paint order, ascending. Ties broken by `id` |
 | `visible` | bool | ✔ | `true` | Hidden nodes stay in the contract and are **not** emitted |
 | `opacity` | float | ✔ | `1.0` | 0.0–1.0 inclusive |
@@ -124,6 +126,70 @@ Every component, whatever its type, has this shape:
 resolution. The map key is the identity used by code generation. They are
 deliberately separate so a node can be renamed in generated output without
 breaking sync history.
+
+---
+
+## 4.1 · Identity: `id`, `name`, `key`
+
+Three identifiers, three jobs. Conflating any two is the scaling bug.
+
+| | Who sets it | Mutable | Unique within | Used by |
+|---|---|---|---|---|
+| `id` | the editor, automatically | **never** | the whole document | sync, conflict resolution |
+| `name` | the designer | yes | **its parent scope** | the layers panel, the generated key |
+| `key` | derived from `name` | follows the name | the whole document | generated CSS class, Compose identifier |
+
+### `id`
+
+A UUID, generated on creation, **never** shown to the designer and **never**
+reused. It is the only identifier sync trusts. Renaming a node does not change
+it, which is what lets a rename survive a sync without looking like a delete
+plus an insert.
+
+### `name`
+
+What the designer sees and types. Required, non-empty.
+
+**Unique within its parent scope** — the screen today, a group once groups
+exist. Two nodes in the same scope may not share a name; the same name in two
+different groups is legal and is the intended escape hatch. Scoping the rule
+rather than globalising it is what keeps it usable: a designer should be able
+to call the button in each card "Action" without the tool arguing.
+
+Defaults on creation are generated to be collision-free:
+
+```
+Rectangle 1, Rectangle 2, …      per type, next free ordinal in scope
+```
+
+The editor must **reject** a rename that would collide, keep the previous name,
+and surface the standard warning rather than silently appending a suffix:
+
+```
+base_pop_up_warning("Can't create \"{name}\" — a component with that name
+                     already exists in this group.")
+```
+
+Silently renaming to `Action 2` is worse than refusing: the designer believes
+they named it `Action`, and the generated identifier disagrees with the layers
+panel.
+
+### `key`
+
+The map key, and the identifier that reaches generated code. Derived:
+
+```
+key = "{type}_{slug(name)}"        →  rect_signIn, text_greeting
+```
+
+`slug` lower-camel-cases the name and strips anything outside `[A-Za-z0-9]`.
+Because `name` is unique within its scope and v1 has exactly one scope, `key`
+is unique within the document. **When groups land, the key must gain the scope
+path** (`group_hero__rect_card`) or two groups' identically-named children will
+collide in a flat CSS file.
+
+`key` changing on rename is safe: generated files are rewritten wholesale, and
+`id` carries the sync identity.
 
 ---
 
@@ -370,7 +436,7 @@ A contract is valid when all hold. Reject, do not repair.
 | # | Rule |
 |---|---|
 | V1 | `schemaVersion == 1` |
-| V2 | Every map key matches `^(rect\|ellipse\|text\|image)_\d+$` |
+| V2 | Every map key matches `^(rect\|ellipse\|text\|image)_[A-Za-z0-9]+$` |
 | V3 | Every `id` is unique within the document |
 | V4 | `opacity` ∈ [0.0, 1.0] |
 | V5 | `rect.w > 0` and `rect.h > 0` |
@@ -381,6 +447,9 @@ A contract is valid when all hold. Reject, do not repair.
 | V10 | `ellipse` ⟹ `radius == "50%"` |
 | V11 | No unknown fields anywhere |
 | V12 | `z` values are unique |
+| V13 | `name` is non-empty after trimming |
+| V14 | `name` is unique within its parent scope — the screen in v1 |
+| V15 | `key` equals `{type}_{slug(name)}` for its node |
 
 V11 is the one people want to relax. Do not. A field one implementation writes
 and another silently drops is a divergence that only shows up at a demo.

@@ -24,7 +24,7 @@ class RoundTripTest {
     )
 
     private val rect = RectNode(
-        id = "n1", z = 0,
+        id = "n1", name = "Header", z = 0,
         rect = RelRect.of(0.0, 0.0, 100.0, 27.0),
         fill = Color.of("#65558F"),
         radius = Radius.dp(8.0),
@@ -32,7 +32,7 @@ class RoundTripTest {
     )
 
     private val ellipse = EllipseNode(
-        id = "n2", z = 1,
+        id = "n2", name = "Title", z = 1,
         rect = RelRect.of(78.4, 26.7, 14.9, 8.4),
         fill = Color.of("#2E8B74"),
         text = TextPayload("3", 22.0, TextAlign.CENTER, Color.of("#FFFFFF"), TextWeight.SEMIBOLD),
@@ -40,14 +40,14 @@ class RoundTripTest {
     )
 
     private val text = TextNode(
-        id = "n3", z = 2,
+        id = "n3", name = "Badge", z = 2,
         rect = RelRect.of(7.5, 11.1, 69.3, 5.1),
         text = TextPayload("Good morning", 26.0, TextAlign.START, Color.of("#FFFFFF"), TextWeight.SEMIBOLD),
         updatedAt = now,
     )
 
     private val image = ImageNode(
-        id = "n4", z = 3,
+        id = "n4", name = "Photo", z = 3,
         rect = RelRect.of(6.4, 51.3, 87.2, 22.5),
         source = AssetRef("asset_12", "image/png"),
         contentScale = ContentScale.CROP,
@@ -70,15 +70,15 @@ class RoundTripTest {
     /** §9: null and "" are different states and must survive distinctly. */
     @Test
     fun `null text and empty text are distinguishable after a round trip`() {
-        val noSlot = rect.copy(id = "n9", text = null)
+        val noSlot = rect.copy(id = "n9", name = "Bare", text = null)
         val emptySlot = rect.copy(
-            id = "n8",
+            id = "n8", name = "Slot",
             text = TextPayload("", 14.0, TextAlign.START, Color.of("#000000"), TextWeight.NORMAL),
         )
         val back = roundTrip(contractOf(noSlot, emptySlot.copy(z = 5)))
-        assertNull(back.components["rect_9"]!!.text)
-        assertNotNull(back.components["rect_8"]!!.text)
-        assertEquals("", back.components["rect_8"]!!.text!!.value)
+        assertNull(back.components["rect_bare"]!!.text)
+        assertNotNull(back.components["rect_slot"]!!.text)
+        assertEquals("", back.components["rect_slot"]!!.text!!.value)
     }
 
     /** §8: "50%" is the only legal radius string, and it is not CircleShape. */

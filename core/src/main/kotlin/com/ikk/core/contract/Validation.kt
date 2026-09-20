@@ -26,6 +26,7 @@ object ContractValidator {
 
         val seenIds = mutableSetOf<String>()
         val seenZ = mutableSetOf<Int>()
+        val seenNames = mutableSetOf<String>()
 
         for ((key, node) in contract.components) {
             if (!KEY_PATTERN.matches(key)) {
@@ -55,6 +56,12 @@ object ContractValidator {
             }
             if (node is EllipseNode && node.radius !is Radius.Full) {
                 v += Violation("V10", key, "an ellipse must have radius \"50%\"")
+            }
+            if (node.name.isBlank()) {
+                v += Violation("V13", key, "name is blank")
+            }
+            if (!seenNames.add(node.name.trim().lowercase())) {
+                v += Violation("V14", key, "duplicate name \"${node.name}\" in this scope")
             }
             if (!seenZ.add(node.z)) {
                 v += Violation("V12", key, "duplicate z value ${node.z}")

@@ -197,7 +197,11 @@ function normalizeNode(key, value, inputOrder, seenIds, seenClasses) {
 
 export function normalizeContract(value) {
   const contract = objectAt(value, "contract");
-  if (contract.version !== 1) fail("contract.version", "only version 1 is supported");
+  // docs/json_contract.md §2 — the field is schemaVersion, and an unknown one
+  // is rejected rather than guessed.
+  if (contract.schemaVersion !== 1) {
+    fail("contract.schemaVersion", "only schemaVersion 1 is supported");
+  }
   const checkpoint = stringAt(contract.checkpoint, "contract.checkpoint");
   const screen = stringAt(contract.screen, "contract.screen");
   if (contract.layout !== "relative") fail("contract.layout", 'only "relative" is supported');
