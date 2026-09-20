@@ -9,6 +9,21 @@ two views of one object.
 Hackathon scope: one laptop, one process, no database, no cloud. Everything
 here runs from `./gradlew` and a browser tab.
 
+## Where this stands
+
+| Area | State |
+|---|---|
+| JSON contract, Kotlin + Python models | Implemented, 3 suites green |
+| Deterministic codegen (`packages/codegen`) | Implemented — emits `.kt` and `.css` |
+| Backend (`apps/backend`) | Runs; validates, stores, generates. No database |
+| Android application | Hello World scaffold |
+| Web application | Static device-frame harness |
+| Android and Web editor UX | Interactive prototypes only |
+| Sync, checkpoints, assets | Not started |
+
+Authority order is in [docs/README.md](docs/README.md): the JSON contract wins
+over the component model, the roadmap, and the prototypes.
+
 ---
 
 ## Why a contract and not an export
@@ -294,11 +309,9 @@ What exists in the build today, independent of the pipeline above.
 
 ### Requirements
 
-| | |
-|---|---|
-| JDK | 21 — AGP 9.x does not support JDK 25+ |
-| Android SDK | API 37 installed |
-| Gradle | 9.6.1 via the wrapper — do not use a system `gradle` |
+- JDK 17; Gradle toolchains can provision it automatically
+- Android SDK with API 37 installed
+- Gradle 9.6.1 through the checked-in wrapper
 
 No JDK is pinned. Each module declares `jvmToolchain(17)` and the foojay
 resolver in `settings.gradle.kts` fetches a matching JDK, so the build works on
@@ -386,16 +399,16 @@ real data source ever lands here, fold it into `app`.
 ### Build
 
 ```sh
+./gradlew test
 ./gradlew assembleDebug
 ```
 
 ### Test
 
 ```sh
-./gradlew :core:test                 # pure JVM, fastest
-./gradlew :data:testDebugUnitTest
-./gradlew test                       # every module
-./gradlew connectedDebugAndroidTest  # instrumented, needs a device/emulator
+./gradlew :packages:design-contract:test
+./gradlew :apps:android:data:testDebugUnitTest
+./gradlew :apps:android:app:assembleDebug
 ```
 
 `app` currently has no unit tests — its logic lives in the modules below it.
@@ -409,9 +422,8 @@ Open the project root in IntelliJ IDEA / Android Studio and let it import the
 Gradle build, then run the `app` configuration. From the command line:
 
 ```sh
-./gradlew installDebug
+./gradlew :apps:android:app:installDebug
 adb shell am start -n com.ikk/.MainActivity
-adb logcat --pid=$(adb shell pidof -s com.ikk)
 ```
 
 ### Known issues

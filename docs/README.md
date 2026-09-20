@@ -5,17 +5,19 @@
 | [json_contract.md](json_contract.md) | **Normative** wire format | Before writing any code that touches the contract |
 | [component-model.md](component-model.md) | Class tree and shared behaviours | Before implementing a surface |
 | [roadmap.md](roadmap.md) | 100-item build plan, both surfaces | Planning, or picking up the next task |
+| [architecture/repository-layout.md](architecture/repository-layout.md) | Folder ownership and dependency rules | Before adding or moving a module |
+| [architecture/frontend-architecture.md](architecture/frontend-architecture.md) | Android/Web architecture decision | Before choosing frontend technology |
 
-Interactive specs live in `prototype/`:
+Interactive specs live in `prototypes/`:
 
 | Prototype | Shows |
 |---|---|
-| `prototype/editor-web/` | The web editor layout and interactions |
-| `prototype/editor-android/` | The Android editor, five layout states |
-| `prototype/pipeline/` | How the contract, codegen and agent stages fit together |
-| `prototype/agent-loop/` | The per-step gate runner (phase 2 of the product) |
+| `prototypes/editor-web/` | The web editor layout and interactions |
+| `prototypes/editor-android/` | The Android editor, five layout states |
+| `prototypes/pipeline/` | How the contract, codegen and agent stages fit together |
+| `prototypes/agent-loop/` | The per-step gate runner (phase 2 of the product) |
 
-`prototype/shared/editor-core.js` is imported by both editor prototypes. That
+`prototypes/shared/editor-core.js` is imported by both editor prototypes. That
 is deliberate: if the two prototypes ever disagree about geometry, it is a
 renderer bug, not a difference of opinion.
 

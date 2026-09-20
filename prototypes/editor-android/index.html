@@ -1,0 +1,893 @@
+<title>Android Canvas Editor</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --page: #E9EBEA; --page-ink: #1B1D1C; --page-muted: #5E6462; --page-line: #D2D5D2;
+    --bezel: #202325; --accent: #2F5D8C; --accent-soft: #DDE8F3;
+
+    /* Material 3 baseline, light — the app's own tokens */
+    --m-surface: #FEF7FF; --m-on-surface: #1D1B20; --m-surface-c: #F3EDF7;
+    --m-surface-ch: #E6E0E9; --m-primary: #65558F; --m-on-primary: #FFFFFF;
+    --m-outline: #79747E; --m-outline-v: #CAC4D0; --m-error: #B3261E;
+    --m-workspace: #8F8A97;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page: #101211; --page-ink: #E4E7E5; --page-muted: #939A97; --page-line: #2E3231;
+      --bezel: #08090A; --accent: #8FB5DC; --accent-soft: #19293A;
+      --m-surface: #141218; --m-on-surface: #E6E0E9; --m-surface-c: #211F26;
+      --m-surface-ch: #2B2930; --m-primary: #D0BCFE; --m-on-primary: #381E72;
+      --m-outline: #938F99; --m-outline-v: #49454F; --m-error: #F2B8B5;
+      --m-workspace: #322F38;
+    }
+  }
+  :root[data-theme="dark"] {
+    --page: #101211; --page-ink: #E4E7E5; --page-muted: #939A97; --page-line: #2E3231;
+    --bezel: #08090A; --accent: #8FB5DC; --accent-soft: #19293A;
+    --m-surface: #141218; --m-on-surface: #E6E0E9; --m-surface-c: #211F26;
+    --m-surface-ch: #2B2930; --m-primary: #D0BCFE; --m-on-primary: #381E72;
+    --m-outline: #938F99; --m-outline-v: #49454F; --m-error: #F2B8B5;
+    --m-workspace: #322F38;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--page-ink);
+    font-family: "Roboto", ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased;
+    padding-inline: 16px; padding-block: 0 48px;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .wrap { max-width: 1060px; margin: 0 auto; }
+
+  header.page {
+    padding-block: 32px 20px; display: flex; align-items: flex-end;
+    gap: 14px; flex-wrap: wrap; border-bottom: 1px solid var(--page-line); margin-bottom: 24px;
+  }
+  header.page h1 { margin: 0; font-size: clamp(21px, 4vw, 28px); font-weight: 700; letter-spacing: -0.015em; }
+  .eyebrow { margin: 0 0 5px; font-family: "IBM Plex Mono", monospace; font-size: 10.5px;
+             letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  .grow { margin-left: auto; }
+  .btn { border: 1px solid var(--page-line); background: var(--page); padding: 7px 12px;
+         border-radius: 6px; font-weight: 500; }
+  .btn:hover { filter: brightness(.97); }
+
+  .split { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 30px; align-items: start; }
+
+  /* ---------- device ---------- */
+
+  .device {
+    background: var(--bezel); border-radius: 34px; padding: 10px;
+    box-shadow: 0 14px 44px rgba(0,0,0,.3); flex: 0 0 auto; justify-self: center;
+  }
+  .phone {
+    width: 412px; height: 915px; border-radius: 26px; overflow: hidden;
+    background: var(--m-surface); color: var(--m-on-surface);
+    display: grid; grid-template-rows: 26px auto minmax(0,1fr) auto; position: relative;
+  }
+
+  .sysbar { display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; font-size: 11px; font-weight: 500; }
+
+  /* app bar — swaps to contextual on selection */
+  .appbar {
+    height: 64px; display: flex; align-items: center; gap: 4px; padding: 0 6px;
+    background: var(--m-surface); border-bottom: 1px solid var(--m-outline-v);
+  }
+  .appbar.ctx { background: var(--m-surface-ch); }
+  .ab-title { font-size: 17px; font-weight: 500; margin-inline: 6px; flex: 1 1 auto;
+              overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ico {
+    width: 48px; height: 48px; border-radius: 24px; border: none; background: none;
+    display: grid; place-items: center; font-size: 17px; color: inherit; flex: 0 0 auto;
+  }
+  .ico:hover { background: var(--m-surface-c); }
+  .ico[disabled] { opacity: .35; cursor: not-allowed; }
+
+  /* canvas */
+  .work { background: var(--m-workspace); display: grid; place-items: center; overflow: hidden; position: relative; }
+  .art {
+    position: relative; background: #fff; flex: 0 0 auto;
+    box-shadow: 0 4px 18px rgba(0,0,0,.3);
+  }
+  .art.draw { cursor: crosshair; }
+  .n { position: absolute; display: flex; overflow: hidden; touch-action: none; }
+  .n.hid { display: none; }
+  .n .tx { width: 100%; padding: 3px 5px; white-space: pre-wrap; word-break: break-word; outline: none; }
+  .n.sel { outline: 2px solid var(--accent); }
+  .hd {
+    position: absolute; width: 14px; height: 14px; background: #fff;
+    border: 2px solid var(--accent); border-radius: 3px; z-index: 6;
+  }
+  /* 48dp touch target via transparent padding, visual stays 14px */
+  .hd::after { content: ""; position: absolute; left: -17px; top: -17px; width: 48px; height: 48px; }
+  .hd-nw{left:-7px;top:-7px}.hd-ne{right:-7px;top:-7px}
+  .hd-se{right:-7px;bottom:-7px}.hd-sw{left:-7px;bottom:-7px}
+  .hd-n{left:calc(50% - 7px);top:-7px}.hd-s{left:calc(50% - 7px);bottom:-7px}
+  .hd-e{right:-7px;top:calc(50% - 7px)}.hd-w{left:-7px;top:calc(50% - 7px)}
+
+  /* bottom surfaces */
+  .rail {
+    height: 76px; display: flex; align-items: center; justify-content: space-around;
+    background: var(--m-surface-c); border-top: 1px solid var(--m-outline-v);
+    padding-bottom: 6px;
+  }
+  .rail button {
+    width: 62px; min-height: 48px; border: none; background: none; border-radius: 14px;
+    display: grid; gap: 2px; justify-items: center; font-size: 10px; color: var(--m-on-surface);
+    padding: 4px 0;
+  }
+  .rail button svg { width: 22px; height: 22px; }
+  .rail button[aria-pressed="true"] { background: var(--m-primary); color: var(--m-on-primary); }
+  .railwrap { position: relative; }
+  .shapepop {
+    position: absolute; bottom: 82px; left: 50%; transform: translateX(-50%);
+    background: var(--m-surface-c); border: 1px solid var(--m-outline-v);
+    border-radius: 14px; box-shadow: 0 6px 22px rgba(0,0,0,.34);
+    padding: 6px; display: grid; gap: 4px; z-index: 22; min-width: 186px;
+  }
+  .shapepop button {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    min-height: 48px; padding: 0 12px; border-radius: 10px;
+    border: none; background: none; color: var(--m-on-surface); font-size: 14px; text-align: left;
+  }
+  .shapepop button[aria-checked="true"] { background: var(--m-primary); color: var(--m-on-primary); }
+  .shapepop svg { width: 22px; height: 22px; flex: 0 0 auto; }
+
+  .sheet {
+    background: var(--m-surface-c); border-top: 1px solid var(--m-outline-v);
+    border-radius: 16px 16px 0 0; display: grid; grid-template-rows: auto minmax(0,1fr);
+  }
+  .grab { display: grid; place-items: center; padding: 8px 0 4px; }
+  .grab i { width: 32px; height: 4px; border-radius: 2px; background: var(--m-outline); display: block; }
+
+  .chips { display: flex; gap: 8px; padding: 4px 12px 14px; overflow-x: auto; }
+  .chip {
+    min-height: 40px; padding: 0 14px; border-radius: 20px;
+    border: 1px solid var(--m-outline); background: transparent; color: var(--m-on-surface);
+    font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+  }
+  .chip[aria-pressed="true"] { background: var(--m-primary); color: var(--m-on-primary); border-color: transparent; }
+
+  .sheet-body { overflow-y: auto; padding: 0 14px 14px; }
+  .sec-t { font-size: 12px; font-weight: 500; color: var(--m-on-surface); opacity: .72;
+           margin: 10px 0 8px; letter-spacing: .04em; }
+
+  .padrow { display: grid; grid-template-columns: 148px minmax(0,1fr); gap: 14px; align-items: center; }
+  .pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 4px; justify-content: center; }
+  .pad button {
+    border: 1px solid var(--m-outline-v); background: var(--m-surface); border-radius: 10px;
+    font-size: 15px; display: grid; place-items: center; color: var(--m-on-surface);
+  }
+  .pad button:active { background: var(--m-primary); color: var(--m-on-primary); }
+  .pad .mid { background: var(--m-surface-ch); font-size: 11px; }
+
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .fld { display: flex; align-items: center; gap: 6px; }
+  .fld label { font-size: 11px; color: var(--m-on-surface); opacity: .7; width: 12px; }
+  .fld input {
+    width: 100%; min-width: 0; border: 1px solid var(--m-outline-v); background: var(--m-surface);
+    border-radius: 8px; padding: 8px 8px; min-height: 40px;
+    font-family: "IBM Plex Mono", monospace; font-size: 13px; font-variant-numeric: tabular-nums;
+    color: var(--m-on-surface);
+  }
+  .fld input:focus { outline: none; border-color: var(--m-primary); }
+
+  .sws { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw { width: 44px; height: 44px; border-radius: 22px; border: 2px solid var(--m-outline-v); padding: 0; }
+  .sw[aria-pressed="true"] { border-color: var(--m-primary); border-width: 3px; }
+
+  .steprow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .steprow > span { font-size: 13px; }
+  .stepper { display: flex; align-items: center; gap: 6px; }
+  .stepper button {
+    width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--m-outline-v);
+    background: var(--m-surface); font-size: 17px; color: var(--m-on-surface);
+  }
+  .stepper output {
+    min-width: 46px; text-align: center; font-family: "IBM Plex Mono", monospace;
+    font-size: 13px; font-variant-numeric: tabular-nums;
+  }
+
+  .layerrow {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    min-height: 52px; padding: 4px 8px; border-radius: 12px;
+    border: 1px solid transparent; background: none; text-align: left; color: inherit;
+  }
+  .layerrow[aria-current="true"] { background: var(--m-primary); color: var(--m-on-primary); }
+  .layerrow .eye { width: 44px; height: 44px; border-radius: 22px; border: none; background: none;
+                   color: inherit; font-size: 15px; flex: 0 0 auto; }
+  .layerrow .nm { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .layerrow .ty { font-family: "IBM Plex Mono", monospace; font-size: 10px; opacity: .7; }
+
+  .kb {
+    background: var(--m-surface-ch); border-top: 1px solid var(--m-outline-v);
+    height: 210px; display: grid; place-items: center; text-align: center;
+    font-size: 12px; color: var(--m-on-surface); opacity: .8; padding: 12px;
+  }
+  .textbar {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+    background: var(--m-surface-c); border-top: 1px solid var(--m-outline-v); overflow-x: auto;
+  }
+
+  .snack {
+    position: absolute; left: 12px; right: 12px; bottom: 90px;
+    background: #322F35; color: #F5EFF7; border-radius: 8px;
+    padding: 12px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); z-index: 20;
+  }
+
+  /* ---------- notes column ---------- */
+
+  .notes { min-width: 0; }
+  .notes h2 {
+    font-size: 12px; font-family: "IBM Plex Mono", monospace; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--page-muted); margin: 0 0 10px; font-weight: 500;
+  }
+  .card {
+    background: var(--page); border: 1px solid var(--page-line); border-radius: 8px;
+    padding: 14px 15px; margin-bottom: 12px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+  .card p { margin: 0 0 8px; font-size: 13px; color: var(--page-muted); }
+  .card p:last-child { margin: 0; }
+  .card code { font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+               background: var(--accent-soft); color: var(--accent); padding: 1px 5px; border-radius: 3px; }
+  .state-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+  .state-list button {
+    width: 100%; text-align: left; border: 1px solid var(--page-line); background: var(--page);
+    border-radius: 6px; padding: 8px 11px; font-size: 13px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .state-list button[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .state-list b { font-family: "IBM Plex Mono", monospace; font-size: 10px; opacity: .75; }
+
+  pre.code {
+    margin: 0; background: var(--page); border: 1px solid var(--page-line);
+    border-radius: 8px; padding: 12px 13px; overflow: auto; max-height: 300px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.6; white-space: pre;
+  }
+
+  @media (max-width: 900px) {
+    .split { grid-template-columns: minmax(0,1fr); }
+    .device { transform: scale(.82); transform-origin: top center; margin-bottom: -150px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="page">
+    <div>
+      <p class="eyebrow">Same contract · touch surface</p>
+      <h1>Android canvas editor</h1>
+    </div>
+    <div class="grow"></div>
+    <button class="btn" id="themeBtn">Theme</button>
+    <button class="btn" id="resetBtn">Reset</button>
+  </header>
+
+  <div class="split">
+
+    <!-- ================= phone ================= -->
+    <div class="device">
+      <div class="phone" id="phone">
+
+        <div class="sysbar"><span id="clock">9:41</span><span>&#9650; &#9673; &#9632;</span></div>
+
+        <!-- app bar / contextual bar -->
+        <div class="appbar" id="appbar">
+          <button class="ico" id="abBack" aria-label="Back">&#8592;</button>
+          <span class="ab-title" id="abTitle">Home</span>
+          <button class="ico" id="abUndo" aria-label="Undo">&#8634;</button>
+          <button class="ico" id="abSync" aria-label="Sync">&#8646;</button>
+          <button class="ico" id="abMore" aria-label="More">&#8942;</button>
+        </div>
+
+        <!-- canvas -->
+        <div class="work" id="work">
+          <div class="art" id="art"></div>
+        </div>
+
+        <!-- bottom: rail | sheet | text bar+keyboard -->
+        <div id="bottom"></div>
+
+        <div class="snack" id="snack" hidden></div>
+      </div>
+    </div>
+
+    <!-- ================= notes ================= -->
+    <div class="notes">
+      <h2>Jump to a state</h2>
+      <ul class="state-list" id="states"></ul>
+
+      <h2 style="margin-top:22px">Why it differs from the web build</h2>
+
+      <div class="card">
+        <h3>Panels become surfaces</h3>
+        <p>
+          Three panels cannot fit beside a 375&nbsp;dp canvas on a 412&nbsp;dp screen. At rest
+          nothing is open; selecting a node summons a peek sheet, and a chip
+          expands it to half height.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>The nudge pad replaces arrow keys</h3>
+        <p>
+          A finger lands within ~20&nbsp;dp of intent. Drag gets you close, the pad
+          gets you exact — <code>1dp</code> per tap. There is no keyboard to hold
+          an arrow key on, so this is UI, not a shortcut.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Targets are 48&nbsp;dp, visuals are not</h3>
+        <p>
+          Resize handles draw at 14&nbsp;px but carry a 48&nbsp;dp transparent target.
+          Same trick Material uses for icon buttons — the visual stays small,
+          the hit area does not.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Tools sit at the bottom</h3>
+        <p>
+          On a 915&nbsp;dp screen the top bar is out of thumb reach one-handed.
+          The rail lives where the thumb already rests; the app bar keeps only
+          what you press rarely.
+        </p>
+      </div>
+
+      <h2 style="margin-top:22px">Contract from this device</h2>
+      <pre class="code" id="contractOut"></pre>
+    </div>
+
+  </div>
+</div>
+
+<script src="../shared/editor-core.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var C = window.EditorCore;
+  var W = C.W, H = C.H;
+
+  /* canvas is rendered at a scale that fits the phone's work area */
+  var SCALE = 0.86;
+
+  var nodes = C.seed();
+  var sel = null, tool = "move", mode = "idle", section = "size";
+  var editing = false, hist = [], cp = 1;
+
+  var STATES = [
+    { k: "idle",   n: "A · Idle",            d: "canvas + tool rail" },
+    { k: "peek",   n: "B · Selected",        d: "contextual bar + peek sheet" },
+    { k: "half",   n: "C · Half detent",     d: "nudge pad + properties" },
+    { k: "text",   n: "D · Text editing",    d: "keyboard avoidance" },
+    { k: "layers", n: "E · Layers",          d: "full detent sheet" }
+  ];
+
+  function cur() { return C.byId(nodes, sel); }
+  function snap() { hist.push(JSON.stringify(nodes)); if (hist.length > 30) hist.shift(); }
+
+  function toast(msg) {
+    var s = $("snack");
+    s.textContent = msg; s.hidden = false;
+    clearTimeout(s._t);
+    s._t = setTimeout(function () { s.hidden = true; }, 2200);
+  }
+
+  /* ---------- canvas ---------- */
+
+  function renderArt() {
+    var a = $("art");
+    a.style.width = (W * SCALE) + "px";
+    a.style.height = (H * SCALE) + "px";
+    a.classList.toggle("draw", tool !== "move");
+    a.textContent = "";
+
+    nodes.forEach(function (n) {
+      var el = document.createElement("div");
+      el.className = "n" + (n.visible ? "" : " hid") + (n.id === sel ? " sel" : "");
+      el.dataset.id = n.id;
+      C.applyBox(el, n, SCALE);
+
+      if (n.text !== null && n.text !== undefined) {
+        var t = document.createElement("div");
+        t.className = "tx";
+        C.applyText(t, n, SCALE);
+        t.textContent = n.text;
+        if (editing && n.id === sel) {
+          t.contentEditable = "plaintext-only";
+          t.addEventListener("input", function () { n.text = t.textContent; });
+        }
+        el.appendChild(t);
+      }
+
+      if (n.id === sel && !editing) {
+        ["nw","n","ne","e","se","s","sw","w"].forEach(function (d) {
+          var h = document.createElement("span");
+          h.className = "hd hd-" + d; h.dataset.dir = d;
+          el.appendChild(h);
+        });
+      }
+      a.appendChild(el);
+    });
+  }
+
+  /* ---------- app bar ---------- */
+
+  function renderBar() {
+    var bar = $("appbar"), n = cur();
+    bar.className = "appbar" + (n && mode !== "idle" ? " ctx" : "");
+    $("abTitle").textContent = n && mode !== "idle" ? n.name : "Home";
+    $("abBack").innerHTML = n && mode !== "idle" ? "&#10005;" : "&#8592;";
+    $("abBack").setAttribute("aria-label", n && mode !== "idle" ? "Deselect" : "Back");
+
+    if (mode === "text") {
+      $("abUndo").hidden = true; $("abSync").hidden = true;
+      $("abMore").innerHTML = "&#10003;"; $("abMore").setAttribute("aria-label", "Done");
+    } else if (n && mode !== "idle") {
+      $("abUndo").hidden = true;
+      $("abSync").hidden = false; $("abSync").innerHTML = "&#128465;";
+      $("abSync").setAttribute("aria-label", "Delete");
+      $("abMore").innerHTML = "&#8942;"; $("abMore").setAttribute("aria-label", "More");
+    } else {
+      $("abUndo").hidden = false; $("abUndo").innerHTML = "&#8634;";
+      $("abUndo").setAttribute("aria-label", "Undo");
+      $("abSync").hidden = false; $("abSync").innerHTML = "&#8646;";
+      $("abSync").setAttribute("aria-label", "Sync");
+      $("abMore").innerHTML = "&#8942;"; $("abMore").setAttribute("aria-label", "More");
+    }
+  }
+
+  /* ---------- bottom ---------- */
+
+  var G_RECT = '<rect x="3" y="5" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/>';
+  var G_OVAL = '<ellipse cx="11" cy="11" rx="8" ry="7" fill="none" stroke="currentColor" stroke-width="1.7"/>';
+
+  var SHAPES = [
+    { t: "rect",    n: "Rectangle", g: G_RECT },
+    { t: "ellipse", n: "Ellipse",   g: G_OVAL }
+  ];
+  var lastShape = "rect";
+  var shapeOpen = false;
+
+  function shapeDef(t) {
+    for (var i = 0; i < SHAPES.length; i++) if (SHAPES[i].t === t) return SHAPES[i];
+    return SHAPES[0];
+  }
+
+  var TOOLS = [
+    { t: "move",  n: "Move",  g: '<path d="M5 2l13 8-5.5 1.7L9.5 18z" fill="none" stroke="currentColor" stroke-width="1.7"/>' },
+    { t: "shape", n: "Shape", g: null },
+    { t: "text",  n: "Text",  g: '<path d="M4 5h14M11 5v13M8 18h6" fill="none" stroke="currentColor" stroke-width="1.7"/>' },
+    { t: "image", n: "Image", g: '<rect x="3" y="4" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="8" cy="9" r="1.4" fill="currentColor"/><path d="M4 16l4.5-4.5 3 2.5 3-2.5L18 15" fill="none" stroke="currentColor" stroke-width="1.7"/>' }
+  ];
+
+  function renderBottom() {
+    var host = $("bottom");
+    host.textContent = "";
+
+    if (mode === "text") { host.appendChild(textBar()); host.appendChild(keyboard()); return; }
+    if (mode === "idle" || !cur()) { host.appendChild(rail()); return; }
+
+    host.appendChild(sheet());
+  }
+
+  function rail() {
+    var wrap = document.createElement("div"); wrap.className = "railwrap";
+    var r = document.createElement("div"); r.className = "rail";
+
+    TOOLS.forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button";
+      var isShape = t.t === "shape";
+      var active = isShape ? (tool === "rect" || tool === "ellipse") : tool === t.t;
+      b.setAttribute("aria-pressed", active ? "true" : "false");
+      b.setAttribute("aria-label", isShape ? "Shape" : t.n);
+      if (isShape) {
+        b.setAttribute("aria-haspopup", "menu");
+        b.setAttribute("aria-expanded", shapeOpen ? "true" : "false");
+      }
+      var glyph = isShape ? shapeDef(lastShape).g : t.g;
+      b.innerHTML = '<svg viewBox="0 0 22 22" aria-hidden="true">' + glyph + "</svg><span>" + t.n + "</span>";
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        if (isShape) { tool = lastShape; shapeOpen = !shapeOpen; render(); return; }
+        shapeOpen = false; tool = t.t; render();
+      });
+      r.appendChild(b);
+    });
+    var lay = document.createElement("button");
+    lay.type = "button"; lay.setAttribute("aria-label", "Layers");
+    lay.innerHTML = '<svg viewBox="0 0 22 22" aria-hidden="true"><path d="M11 3l8 4.5-8 4.5-8-4.5z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 12.5l8 4.5 8-4.5" fill="none" stroke="currentColor" stroke-width="1.7"/></svg><span>Layers</span>';
+    lay.addEventListener("click", function () { shapeOpen = false; mode = "layers"; render(); });
+    r.appendChild(lay);
+    wrap.appendChild(r);
+
+    if (shapeOpen) {
+      var pop = document.createElement("div");
+      pop.className = "shapepop";
+      pop.setAttribute("role", "menu");
+      pop.setAttribute("aria-label", "Shape");
+      SHAPES.forEach(function (sh) {
+        var b = document.createElement("button");
+        b.type = "button"; b.setAttribute("role", "menuitemradio");
+        b.setAttribute("aria-checked", lastShape === sh.t ? "true" : "false");
+        b.innerHTML = '<svg viewBox="0 0 22 22" aria-hidden="true">' + sh.g + "</svg><span>" + sh.n + "</span>";
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          lastShape = sh.t; tool = sh.t; shapeOpen = false; render();
+        });
+        pop.appendChild(b);
+      });
+      wrap.appendChild(pop);
+    }
+    return wrap;
+  }
+
+  function sheet() {
+    var s = document.createElement("div"); s.className = "sheet";
+    var grab = document.createElement("div"); grab.className = "grab";
+    grab.innerHTML = "<i></i>";
+    grab.addEventListener("click", function () {
+      mode = mode === "peek" ? "half" : (mode === "half" ? "peek" : "peek");
+      render();
+    });
+
+    var head = document.createElement("div");
+    head.appendChild(grab);
+
+    var chips = document.createElement("div"); chips.className = "chips";
+    var defs = [["size", "⬚ Size"], ["fill", "⬤ Fill"], ["text", "T Text"], ["layers", "☰ Layers"]];
+    defs.forEach(function (d) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = d[1];
+      b.setAttribute("aria-pressed", (mode === "half" && section === d[0]) ? "true" : "false");
+      b.addEventListener("click", function () {
+        if (d[0] === "layers") { mode = "layers"; render(); return; }
+        if (d[0] === "text") {
+          var n = cur();
+          if (n && (n.text === null || n.text === undefined)) { snap(); n.text = "Label"; }
+        }
+        section = d[0]; mode = "half"; render();
+      });
+      chips.appendChild(b);
+    });
+    head.appendChild(chips);
+    s.appendChild(head);
+
+    if (mode === "half" || mode === "layers") {
+      var body = document.createElement("div"); body.className = "sheet-body";
+      body.style.maxHeight = "330px";
+      if (mode === "layers") layersBody(body); else propsBody(body);
+      s.appendChild(body);
+    }
+    return s;
+  }
+
+  function secTitle(host, txt) {
+    var t = document.createElement("div"); t.className = "sec-t"; t.textContent = txt;
+    host.appendChild(t);
+  }
+
+  function propsBody(host) {
+    var n = cur(); if (!n) return;
+
+    if (section === "size") {
+      secTitle(host, "Position");
+      var row = document.createElement("div"); row.className = "padrow";
+
+      var pad = document.createElement("div"); pad.className = "pad";
+      var cells = [
+        ["", null], ["▲", [0,-1]], ["", null],
+        ["◀", [-1,0]], ["mid", null], ["▶", [1,0]],
+        ["", null], ["▼", [0,1]], ["", null]
+      ];
+      cells.forEach(function (c) {
+        if (c[0] === "") { pad.appendChild(document.createElement("span")); return; }
+        var b = document.createElement("button"); b.type = "button";
+        if (c[0] === "mid") {
+          b.className = "mid"; b.textContent = "centre";
+          b.setAttribute("aria-label", "Centre in frame");
+          b.addEventListener("click", function () {
+            snap(); n.x = Math.round((W - n.w) / 2); render();
+          });
+        } else {
+          b.textContent = c[0];
+          b.setAttribute("aria-label", "Nudge " + (c[1][0] ? (c[1][0] > 0 ? "right" : "left") : (c[1][1] > 0 ? "down" : "up")));
+          var rep;
+          function step() { n.x += c[1][0]; n.y += c[1][1]; render(); }
+          b.addEventListener("pointerdown", function () {
+            snap(); step();
+            rep = setTimeout(function () { rep = setInterval(step, 55); }, 380);
+          });
+          ["pointerup","pointerleave","pointercancel"].forEach(function (ev) {
+            b.addEventListener(ev, function () { clearTimeout(rep); clearInterval(rep); });
+          });
+        }
+        pad.appendChild(b);
+      });
+      row.appendChild(pad);
+
+      var fields = document.createElement("div"); fields.className = "fields";
+      [["X","x"],["W","w"],["Y","y"],["H","h"]].forEach(function (p) {
+        var f = document.createElement("div"); f.className = "fld";
+        var l = document.createElement("label"); l.textContent = p[0];
+        var i = document.createElement("input"); i.type = "number"; i.value = Math.round(n[p[1]]);
+        l.htmlFor = i.id = "a_" + p[1];
+        i.addEventListener("change", function () {
+          snap(); n[p[1]] = Math.max(p[1] === "w" || p[1] === "h" ? 4 : -999, Number(i.value) || 0); render();
+        });
+        f.appendChild(l); f.appendChild(i); fields.appendChild(f);
+      });
+      row.appendChild(fields);
+      host.appendChild(row);
+
+      secTitle(host, "Corner radius");
+      host.appendChild(stepper(n.type === "ellipse" ? "—" : n.radius, function (d) {
+        if (n.type === "ellipse") return;
+        snap(); n.radius = Math.max(0, Math.min(60, n.radius + d)); render();
+      }));
+    }
+
+    if (section === "fill") {
+      secTitle(host, "Fill");
+      var sws = document.createElement("div"); sws.className = "sws";
+      C.PALETTE.forEach(function (hex) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "sw"; b.style.background = hex;
+        b.setAttribute("aria-label", "Fill " + hex);
+        b.setAttribute("aria-pressed", n.fill === hex ? "true" : "false");
+        b.addEventListener("click", function () { snap(); n.fill = hex; render(); });
+        sws.appendChild(b);
+      });
+      host.appendChild(sws);
+
+      secTitle(host, "Opacity");
+      host.appendChild(stepper(Math.round(n.opacity * 100), function (d) {
+        snap(); n.opacity = Math.max(.1, Math.min(1, n.opacity + d * 0.05)); render();
+      }));
+
+      secTitle(host, "Stroke width");
+      host.appendChild(stepper(n.strokeW, function (d) {
+        snap(); n.strokeW = Math.max(0, Math.min(12, n.strokeW + d));
+        if (n.strokeW && n.stroke === "none") n.stroke = "#79747E";
+        render();
+      }));
+    }
+
+    if (section === "text") {
+      if (n.text === null || n.text === undefined) {
+        secTitle(host, "This shape has no text");
+        var add = document.createElement("button");
+        add.type = "button"; add.className = "chip"; add.textContent = "+ Add text";
+        add.addEventListener("click", function () { snap(); n.text = "Label"; mode = "text"; editing = true; render(); });
+        host.appendChild(add);
+        return;
+      }
+      secTitle(host, "Content");
+      var edit = document.createElement("button");
+      edit.type = "button"; edit.className = "chip"; edit.style.width = "100%";
+      edit.textContent = "✎  " + (n.text.split("\n")[0] || "empty");
+      edit.addEventListener("click", function () { mode = "text"; editing = true; render(); });
+      host.appendChild(edit);
+
+      secTitle(host, "Size");
+      host.appendChild(stepper(n.fontSize, function (d) {
+        snap(); n.fontSize = Math.max(8, Math.min(64, n.fontSize + d)); render();
+      }));
+
+      secTitle(host, "Colour");
+      var tsw = document.createElement("div"); tsw.className = "sws";
+      ["#1B1D1C", "#FFFFFF", "#65558F", "#4C6FBF", "#2E8B74", "#B3261E"].forEach(function (hex) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "sw"; b.style.background = hex;
+        b.setAttribute("aria-label", "Text colour " + hex);
+        b.setAttribute("aria-pressed", n.textColor === hex ? "true" : "false");
+        b.addEventListener("click", function () { snap(); n.textColor = hex; render(); });
+        tsw.appendChild(b);
+      });
+      host.appendChild(tsw);
+    }
+  }
+
+  function stepper(val, onStep) {
+    var r = document.createElement("div"); r.className = "steprow";
+    var s = document.createElement("div"); s.className = "stepper";
+    var dec = document.createElement("button"); dec.type = "button"; dec.textContent = "−";
+    dec.setAttribute("aria-label", "decrease");
+    var o = document.createElement("output"); o.textContent = val;
+    var inc = document.createElement("button"); inc.type = "button"; inc.textContent = "+";
+    inc.setAttribute("aria-label", "increase");
+    dec.addEventListener("click", function () { onStep(-1); });
+    inc.addEventListener("click", function () { onStep(1); });
+    s.appendChild(dec); s.appendChild(o); s.appendChild(inc);
+    r.appendChild(document.createElement("span"));
+    r.appendChild(s);
+    return r;
+  }
+
+  function layersBody(host) {
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      (function (n) {
+        var row = document.createElement("div");
+        row.className = "layerrow";
+        row.setAttribute("aria-current", n.id === sel ? "true" : "false");
+
+        var eye = document.createElement("button");
+        eye.type = "button"; eye.className = "eye";
+        eye.textContent = n.visible ? "◉" : "○";
+        eye.setAttribute("aria-label", (n.visible ? "Hide " : "Show ") + n.name);
+        eye.addEventListener("click", function (e) { e.stopPropagation(); n.visible = !n.visible; render(); });
+
+        var nm = document.createElement("button");
+        nm.type = "button"; nm.className = "nm";
+        nm.style.cssText = "border:none;background:none;text-align:left;padding:0;color:inherit;font:inherit";
+        nm.textContent = n.name;
+        nm.addEventListener("click", function () { sel = n.id; mode = "half"; section = "size"; render(); });
+
+        var ty = document.createElement("span"); ty.className = "ty"; ty.textContent = n.type;
+
+        row.appendChild(eye); row.appendChild(nm); row.appendChild(ty);
+        host.appendChild(row);
+      })(nodes[i]);
+    }
+  }
+
+  function textBar() {
+    var b = document.createElement("div"); b.className = "textbar";
+    var n = cur();
+    var mk = function (label, fn, aria) {
+      var x = document.createElement("button");
+      x.type = "button"; x.className = "chip"; x.textContent = label;
+      if (aria) x.setAttribute("aria-label", aria);
+      x.addEventListener("click", fn); return x;
+    };
+    b.appendChild(mk("T " + n.fontSize, function () {
+      snap(); n.fontSize = n.fontSize >= 32 ? 14 : n.fontSize + 4; render();
+    }, "Cycle font size"));
+    b.appendChild(mk("←", function () { snap(); n.align = "left"; render(); }, "Align left"));
+    b.appendChild(mk("↔", function () { snap(); n.align = "center"; render(); }, "Align centre"));
+    b.appendChild(mk("→", function () { snap(); n.align = "right"; render(); }, "Align right"));
+    return b;
+  }
+
+  function keyboard() {
+    var k = document.createElement("div"); k.className = "kb";
+    k.innerHTML = "<div><b>system keyboard</b><br>" +
+      "the canvas scrolled the edited node clear of this area<br>" +
+      "&mdash; without that the feature is unusable</div>";
+    return k;
+  }
+
+  /* ---------- pointer ---------- */
+
+  var drag = null;
+
+  $("art").addEventListener("pointerdown", function (e) {
+    if (shapeOpen) { shapeOpen = false; render(); }
+    if (editing) return;
+    var r = this.getBoundingClientRect();
+    var px = (e.clientX - r.left) / SCALE, py = (e.clientY - r.top) / SCALE;
+
+    if (tool !== "move") {
+      snap();
+      var n = C.make(tool, Math.round(px), Math.round(py));
+      n.w = 140; n.h = tool === "ellipse" ? 80 : 52;
+      nodes.push(n); sel = n.id; lastShape = tool; tool = "move"; mode = "peek"; shapeOpen = false;
+      render(); toast(n.name + " added");
+      e.preventDefault(); return;
+    }
+
+    var hd = e.target.closest(".hd");
+    var el = e.target.closest(".n");
+    if (!el) { sel = null; mode = "idle"; render(); return; }
+    var node = C.byId(nodes, el.dataset.id);
+    if (!node) return;
+    if (sel !== node.id) { sel = node.id; if (mode === "idle") mode = "peek"; render(); }
+    snap();
+    drag = { n: node, dir: hd ? hd.dataset.dir : null, sx: e.clientX, sy: e.clientY,
+             ox: node.x, oy: node.y, ow: node.w, oh: node.h };
+    e.preventDefault();
+  });
+
+  window.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    C.transform(drag, (e.clientX - drag.sx) / SCALE, (e.clientY - drag.sy) / SCALE, W, H);
+    renderArt();
+    if (mode === "half") renderBottom();
+  });
+  window.addEventListener("pointerup", function () { drag = null; });
+
+  $("art").addEventListener("dblclick", function (e) {
+    var el = e.target.closest(".n"); if (!el) return;
+    var n = C.byId(nodes, el.dataset.id); if (!n) return;
+    if (n.text === null || n.text === undefined) { snap(); n.text = "Label"; }
+    sel = n.id; mode = "text"; editing = true; render();
+  });
+
+  /* ---------- bar actions ---------- */
+
+  $("abBack").addEventListener("click", function () {
+    if (mode === "text") { editing = false; mode = "peek"; }
+    else if (sel) { sel = null; mode = "idle"; }
+    render();
+  });
+
+  $("abUndo").addEventListener("click", function () {
+    if (!hist.length) { toast("Nothing to undo"); return; }
+    nodes = JSON.parse(hist.pop()); sel = null; mode = "idle"; render();
+  });
+
+  $("abSync").addEventListener("click", function () {
+    if (sel && mode !== "idle") {
+      snap();
+      nodes = nodes.filter(function (n) { return n.id !== sel; });
+      sel = null; mode = "idle"; render(); toast("Deleted");
+    } else {
+      cp += 1; render();
+      toast("Synced — contract cp_" + String(cp).padStart(3, "0") + " pushed");
+    }
+  });
+
+  $("abMore").addEventListener("click", function () {
+    if (mode === "text") { editing = false; mode = "peek"; render(); return; }
+    toast("Overflow: rename, duplicate, bring to front…");
+  });
+
+  /* ---------- state jumper ---------- */
+
+  function renderStates() {
+    var host = $("states"); host.textContent = "";
+    STATES.forEach(function (s) {
+      var li = document.createElement("li");
+      var b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-current", mode === s.k ? "true" : "false");
+      b.innerHTML = "<b>" + s.k + "</b> <span>" + s.n + " &middot; " + s.d + "</span>";
+      b.addEventListener("click", function () {
+        if (s.k === "idle") { sel = null; editing = false; mode = "idle"; }
+        else {
+          if (!sel) sel = nodes[nodes.length - 1].id;
+          editing = s.k === "text";
+          if (s.k === "text") { var n = cur(); if (n.text == null) n.text = "Label"; }
+          if (s.k === "half") section = "size";
+          mode = s.k;
+        }
+        render();
+      });
+      li.appendChild(b); host.appendChild(li);
+    });
+  }
+
+  /* ---------- render ---------- */
+
+  function render() {
+    renderArt(); renderBar(); renderBottom(); renderStates();
+    $("contractOut").textContent = JSON.stringify(C.contract(nodes, cp), null, 2);
+  }
+
+  $("resetBtn").addEventListener("click", function () {
+    nodes = C.seed(); sel = null; mode = "idle"; editing = false; tool = "move"; render();
+  });
+  $("themeBtn").addEventListener("click", function () {
+    var root = document.documentElement, c = root.getAttribute("data-theme");
+    var dark = c ? c === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.setAttribute("data-theme", dark ? "light" : "dark");
+  });
+
+  (function clock() {
+    var d = new Date();
+    $("clock").textContent = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+    setTimeout(clock, 30000);
+  })();
+
+  render();
+})();
+</script>

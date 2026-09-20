@@ -23,8 +23,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "IKK"
 
-// Layered modules. Dependencies point downward only:
-//   app -> data -> core
-include(":app")
-include(":data")
-include(":core")
+// Deployable surfaces live under apps/. Reusable, platform-independent code
+// lives under packages/. The Gradle paths intentionally mirror the folders.
+include(":apps:android:app")
+include(":apps:android:data")
+include(":packages:design-contract")

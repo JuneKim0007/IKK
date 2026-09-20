@@ -9,7 +9,7 @@
 SHELL        := /bin/bash
 FRONTEND_PORT ?= 5173
 BACKEND_PORT  ?= 8000
-VENV          := backend/.venv
+VENV          := apps/backend/.venv
 PY            := $(VENV)/bin/python
 RUN           := .run
 
@@ -65,9 +65,9 @@ frontend: $(RUN) stop-frontend
 
 backend: venv $(RUN) stop-backend
 	@echo "→ backend on :$(BACKEND_PORT)"
-	@cd backend && ../$(VENV)/bin/uvicorn app.main:app \
+	@cd apps/backend && ../../$(VENV)/bin/uvicorn app.main:app \
 		--host 127.0.0.1 --port $(BACKEND_PORT) --reload \
-		> ../$(RUN)/backend.log 2>&1 & echo $$! > $(RUN)/backend.pid
+		> ../../$(RUN)/backend.log 2>&1 & echo $$! > $(RUN)/backend.pid
 	@for i in $$(seq 1 40); do \
 		curl -sf http://127.0.0.1:$(BACKEND_PORT)/healthz >/dev/null && break || sleep 0.25; \
 	done
@@ -113,11 +113,11 @@ logs:
 
 venv: $(VENV)/.installed
 
-$(VENV)/.installed: backend/pyproject.toml
+$(VENV)/.installed: apps/backend/pyproject.toml
 	@echo "→ python env"
 	@python3 -m venv $(VENV)
 	@$(PY) -m pip install -q --upgrade pip
-	@cd backend && ../$(VENV)/bin/pip install -q -e ".[dev]"
+	@cd apps/backend && ../../$(VENV)/bin/pip install -q -e ".[dev]"
 	@touch $(VENV)/.installed
 
 ## ---------------------------------------------------------------- test
@@ -132,22 +132,22 @@ test-kotlin:
 
 test-codegen:
 	@echo "→ codegen"
-	@cd codegen && npm test
+	@cd packages/codegen && npm test
 
 test-backend: venv
 	@echo "→ backend"
-	@cd backend && ../$(VENV)/bin/pytest -q
+	@cd apps/backend && ../../$(VENV)/bin/pytest -q
 
 generate:
-	@cd codegen && npm run generate
+	@cd packages/codegen && npm run generate
 
 check:
-	@cd codegen && npm run check
+	@cd packages/codegen && npm run check
 
 ## ---------------------------------------------------------------- docker
 
 docker-build:
-	@docker build -t ikk-backend:dev backend
+	@docker build -t ikk-backend:dev -f apps/backend/Dockerfile .
 
 docker-run: docker-build
 	@docker run --rm -p $(BACKEND_PORT):8000 --name ikk-backend ikk-backend:dev

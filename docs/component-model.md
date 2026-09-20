@@ -204,7 +204,7 @@ divergence at this one node of the tree and nowhere below it.
 ### Emission does not live here
 
 An earlier draft put `toCompose()` / `toCss()` on `DesignNode`. It no longer
-does. Emission is owned by the standalone `codegen/` package, which reads a
+does. Emission is owned by the standalone `packages/codegen/` package, which reads a
 contract and writes `.kt` and `.css`.
 
 *Rendering* a contract at runtime — what both editors do — and *generating*
