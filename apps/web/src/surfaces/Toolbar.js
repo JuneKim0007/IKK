@@ -11,12 +11,13 @@ const SHAPES = [
 
 /** Tools, plus the grouped shape tool that remembers the last shape used. */
 export class Toolbar extends BaseElement {
-  constructor(store, { onTool, onGenerate, onUndo, onDelete }) {
+  constructor(store, { onTool, onGenerate, onUndo, onDelete, onBackground }) {
     super('toolbar', { store });
     this.onTool = onTool;
     this.onGenerate = onGenerate;
     this.onUndo = onUndo;
     this.onDelete = onDelete;
+    this.onBackground = onBackground;
     this.tool = 'move';
     this.lastShape = 'rect';
     this.flyoutOpen = false;
@@ -36,6 +37,8 @@ export class Toolbar extends BaseElement {
         </span>
         <button class="tool" data-tool="text" title="Text (T)" aria-label="Text">${icon('text')}</button>
         <button class="tool" data-tool="image" title="Media (I)" aria-label="Media">${icon('media')}</button>
+        <span class="tool-sep"></span>
+        <button class="tool" id="backgroundBtn" title="Background (B)" aria-label="Background">${icon('background')}</button>
       </div>
       <span class="spacer"></span>
       <span class="sync" id="syncStatus" title="sync status">offline</span>
@@ -56,6 +59,7 @@ export class Toolbar extends BaseElement {
 
     bar.querySelector('.tools').addEventListener('click', (e) => {
       if (e.target.closest('#shapeBtn')) { this.shapePopover.toggle(); return; }
+      if (e.target.closest('#backgroundBtn')) { this.onBackground?.(); return; }
       const btn = e.target.closest('.tool[data-tool]');
       if (!btn) return;
       this.setTool(btn.dataset.tool, bar);

@@ -12,6 +12,8 @@ data class Project(
     val referenceHeight: Int,
     val referenceUnit: String,
     val layout: String,
+    /** Raw §3.1 background JSON, or null when the contract carried none. */
+    val background: String?,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

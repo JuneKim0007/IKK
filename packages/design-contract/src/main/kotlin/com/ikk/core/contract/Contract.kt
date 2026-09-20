@@ -18,6 +18,13 @@ data class Contract(
     val screen: String,
     val reference: Reference = Reference(),
     val layout: String = "relative",
+    /**
+     * Optional. Absent means the surface is undefined and nothing is painted
+     * behind the nodes — which is not the same as white. A design that assumes
+     * a dark surface must say so, or the Android output diverges from the
+     * editor the moment the device theme changes.
+     */
+    val background: Background? = null,
     val components: Map<String, DesignNode>,
 ) {
     /** Paint order is z ascending — never map iteration order. */

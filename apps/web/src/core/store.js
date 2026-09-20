@@ -136,6 +136,17 @@ export class Store {
     this._emit();
   }
 
+  /**
+   * The background is screen state, not node state, so it does not version a
+   * node — but it is still a contract change and must reach the sync queue.
+   */
+  setBackground(fill) {
+    this._pushUndo();
+    this.contract.background = fill == null ? null : { fill };
+    this.dirtyIds.add('__background__');
+    this._emit();
+  }
+
   _pushUndo() {
     this._undo.push(structuredClone(this.contract));
     if (this._undo.length > 50) this._undo.shift();

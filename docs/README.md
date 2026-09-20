@@ -9,6 +9,7 @@
 | [roadmap-frontend.md](roadmap-frontend.md) | Remaining Web and Android work | Frontend planning |
 | [architecture/repository-layout.md](architecture/repository-layout.md) | Folder ownership and dependency rules | Before adding or moving a module |
 | [architecture/frontend-architecture.md](architecture/frontend-architecture.md) | Android/Web architecture decision | Before choosing frontend technology |
+| [architecture/planned-design.md](architecture/planned-design.md) | Design for the open roadmap items, and the order to build them | Before starting any F1/F2/F3/G or backend roadmap item |
 
 ## Order of authority
 

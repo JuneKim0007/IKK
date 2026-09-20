@@ -18,7 +18,7 @@ object RawContractValidator {
     private val nodeTypes = setOf("rect", "ellipse", "triangle", "line", "text", "image")
 
     private val rootFields = setOf(
-        "schemaVersion", "checkpoint", "screen", "reference", "layout", "components",
+        "schemaVersion", "checkpoint", "screen", "reference", "layout", "components", "background",
     )
     private val referenceFields = setOf("w", "h", "unit")
     private val nodeFields = setOf(

@@ -15,8 +15,9 @@ class ProjectRepository(private val jdbc: JdbcTemplate) {
             """
             INSERT INTO projects (
                 id, name, screen, schema_version, current_checkpoint,
-                reference_w, reference_h, reference_unit, layout, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                reference_w, reference_h, reference_unit, layout, background,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """.trimIndent(),
             project.id,
             project.name,
@@ -27,6 +28,7 @@ class ProjectRepository(private val jdbc: JdbcTemplate) {
             project.referenceHeight,
             project.referenceUnit,
             project.layout,
+            project.background,
             project.createdAt.toJdbcTime(),
             project.updatedAt.toJdbcTime(),
         )
@@ -66,6 +68,7 @@ class ProjectRepository(private val jdbc: JdbcTemplate) {
         referenceHeight = getInt("reference_h"),
         referenceUnit = getString("reference_unit"),
         layout = getString("layout"),
+        background = getString("background"),
         createdAt = getObject("created_at", OffsetDateTime::class.java).toInstant(),
         updatedAt = getObject("updated_at", OffsetDateTime::class.java).toInstant(),
     )

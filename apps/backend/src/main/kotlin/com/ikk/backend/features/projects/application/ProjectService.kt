@@ -23,6 +23,7 @@ class ProjectService(
             screen = name.toScreenName(),
             schemaVersion = 1,
             currentCheckpoint = "cp_000",
+            background = null,
             referenceWidth = 375,
             referenceHeight = 667,
             referenceUnit = "dp",
@@ -54,6 +55,7 @@ class ProjectService(
             referenceHeight = reference.path("h").intValue(),
             referenceUnit = reference.path("unit").stringValue(),
             layout = contract.path("layout").stringValue(),
+            background = contract.get("background")?.takeUnless { it.isNull }?.toString(),
             createdAt = now,
             updatedAt = now,
         ).also(projects::insert)

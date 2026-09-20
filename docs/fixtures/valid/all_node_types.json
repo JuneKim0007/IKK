@@ -165,5 +165,21 @@
       "version": 1,
       "updatedAt": "2026-09-20T14:22:31Z"
     }
+  },
+  "background": {
+    "fill": {
+      "type": "linear",
+      "angle": 135,
+      "stops": [
+        {
+          "color": "#F49AA8",
+          "at": 0.0
+        },
+        {
+          "color": "#C86DD7",
+          "at": 100.0
+        }
+      ]
+    }
   }
 }

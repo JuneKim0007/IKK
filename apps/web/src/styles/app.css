@@ -24,7 +24,8 @@ button { cursor: pointer; }
 }
 .logo { font-weight: 700; letter-spacing: -0.01em; }
 .spacer { margin-left: auto; }
-.tools { display: flex; gap: var(--space-1); }
+.tools { display: flex; gap: var(--space-1); align-items: center; }
+.tool-sep { width: 1px; height: 20px; background: var(--line); margin: 0 3px; }
 .tool {
   width: 34px; height: 30px; border-radius: var(--radius-md);
   border: 1px solid transparent; background: none; color: var(--ink);
@@ -91,6 +92,21 @@ button { cursor: pointer; }
   box-shadow: 0 8px 30px rgb(0 0 0 / .26);
 }
 .frame[data-tool]:not([data-tool="move"]) { cursor: crosshair; }
+/* An undefined surface should look undefined, not white. */
+.frame.no-surface { background: repeating-conic-gradient(var(--chrome-2) 0% 25%, var(--panel) 0% 50%) 0 0 / 16px 16px; }
+
+.presets { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-bottom: var(--space-2); }
+.preset {
+  width: 46px; height: 40px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line); padding: 0; position: relative; overflow: hidden;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.preset span {
+  font-size: 8.5px; width: 100%; text-align: center; padding: 1px 0;
+  background: rgb(0 0 0 / .45); color: #fff;
+}
+.preset[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+.preset-none { background: repeating-conic-gradient(var(--chrome-2) 0% 25%, var(--panel) 0% 50%) 0 0 / 10px 10px; }
 
 /* §7 — stroke is INSIDE the bounds on both surfaces. Without border-box a 4dp
    stroke makes the web render 8dp wider than Compose. */

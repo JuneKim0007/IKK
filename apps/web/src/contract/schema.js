@@ -22,9 +22,30 @@ export const LINE_HEIGHT_RATIO = 1.3;
  * uppercase and two spellings of one colour checksum differently.
  */
 export const PALETTE = {
-  neutral: ['#000000', '#1B1D1C', '#5E6462', '#9BA19E', '#D6D9D7', '#FFFFFF'],
-  hue:     ['#65558F', '#4C6FBF', '#2E8B74', '#B4772A', '#C0504D', '#8E4DA8'],
+  neutral: ['#000000', '#141021', '#2A2440', '#8A86A6', '#E8E6F0', '#FFFFFF'],
+  hue:     ['#4FA8E8', '#7C5CE6', '#D96BC4', '#EFB48A', '#5B8DEF', '#4ED97B'],
 };
+
+/**
+ * Surfaces designers reach for first. Separate from the accent rows because a
+ * background is chosen once per screen and an accent many times per screen —
+ * mixing them makes the common case hunt through the rare one.
+ */
+export const SURFACES = {
+  dark:  '#141021',
+  light: '#FFFFFF',
+};
+
+/** Two defaults, matching the dark and light pair in the reference designs. */
+export const BACKGROUND_PRESETS = [
+  { name: 'Ink', fill: '#141021' },
+  { name: 'Paper', fill: '#FFFFFF' },
+  { name: 'Blush', fill: { type: 'linear', angle: 135,
+      stops: [{ color: '#F49AA8', at: 0 }, { color: '#C86DD7', at: 100 }] } },
+  { name: 'Dusk', fill: { type: 'linear', angle: 160,
+      stops: [{ color: '#2A2440', at: 0 }, { color: '#141021', at: 100 }] } },
+  { name: 'None', fill: null },
+];
 
 /** Flat form, for code that just needs "is this one of ours". */
 export const PALETTE_COLORS = [...PALETTE.neutral, ...PALETTE.hue];
@@ -146,6 +167,27 @@ export function createNode(type, name, x, y, z, drawnRect) {
 /** A subset of §12 — enough to keep the editor honest before the server sees it. */
 export function validate(contract) {
   const out = [];
+  const bg = contract.background;
+  if (bg !== undefined && bg !== null) {
+    const fill = bg.fill;
+    if (fill !== null && fill !== undefined && typeof fill !== 'string') {
+      if (fill.type !== 'linear') {
+        out.push({ rule: 'V26', where: 'background', message: 'only linear gradients exist in v1' });
+      } else if (!Array.isArray(fill.stops) || fill.stops.length < 2) {
+        out.push({ rule: 'V25', where: 'background', message: 'a gradient needs at least two stops' });
+      } else {
+        let previous = -Infinity;
+        for (const stop of fill.stops) {
+          if (stop.at < 0 || stop.at > 100 || stop.at < previous) {
+            out.push({ rule: 'V25', where: 'background', message: 'gradient stops must be 0..100 and non-decreasing' });
+            break;
+          }
+          previous = stop.at;
+        }
+      }
+    }
+  }
+
   const seenNames = new Set();
   const seenZ = new Set();
 
@@ -178,6 +220,19 @@ export function validate(contract) {
   return out;
 }
 
+/**
+ * docs/json_contract.md §3.1 — a colour string or a linear gradient.
+ * Returns a CSS value, or null when there is no background: absent is not
+ * white, and painting white would silently change a dark design.
+ */
+export function backgroundCss(background) {
+  const fill = background?.fill;
+  if (!fill) return null;
+  if (typeof fill === 'string') return fill;
+  const stops = fill.stops.map((s) => `${s.color} ${s.at}%`).join(', ');
+  return `linear-gradient(${fill.angle ?? 180}deg, ${stops})`;
+}
+
 export function emptyContract(screen = 'Home') {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -185,6 +240,7 @@ export function emptyContract(screen = 'Home') {
     screen,
     reference: { ...REFERENCE },
     layout: 'relative',
+    background: { fill: SURFACES.dark },
     components: {},
   };
 }

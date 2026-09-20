@@ -1,6 +1,6 @@
 import { BaseElement } from '../core/BaseElement.js';
 import { create } from '../core/registry.js';
-import { rel } from '../contract/schema.js';
+import { rel, backgroundCss } from '../contract/schema.js';
 
 const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
 
@@ -25,6 +25,12 @@ export class Canvas extends BaseElement {
   }
 
   render(store) {
+    // Absent background means absent, not white: the frame keeps its own
+    // checkerboard-free neutral so an undefined surface is visibly undefined.
+    const surface = backgroundCss(store.contract.background);
+    this.frame.style.background = surface ?? '';
+    this.frame.classList.toggle('no-surface', !surface);
+
     const seen = new Set();
 
     for (const node of store.nodes()) {
