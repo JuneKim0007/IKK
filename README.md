@@ -1,31 +1,7 @@
 # IKK
 
-On-device benchmark harness for measuring the energy and performance cost of
-Android SDK cryptographic primitives.
-
-Capstone project: *Greenspecting Android Cryptographic Primitives — A
-Multi-Objective Energy and Performance Analysis*.
-
-The app executes cryptographic operations under controlled, repeated workloads
-and records per-iteration runtime and allocation. Energy is **not** sampled by
-the app: power traces are captured off-device in parallel with a run and joined
-against exported results during analysis.
-
-Scope is the on-device half only. The analysis pipeline lives elsewhere.
-
-## Structure
-
-```text
-app/src/main/kotlin/com/ikk/
-├── crypto/        operations under test, grouped by category
-├── provider/      Conscrypt / Keystore / Strongbox backends
-├── benchmark/     matrix configuration, runner, raw results
-├── measurement/   on-device runtime and allocation sampling
-└── export/        writing results out for off-device analysis
-```
-
-Everything in those packages is currently an interface or data type. No
-measurement logic is implemented yet.
+Android application (Kotlin + Jetpack Compose). Currently a Hello World
+scaffold.
 
 ## Requirements
 
@@ -56,3 +32,18 @@ Gradle build, then run the `app` configuration. From the command line:
 ./gradlew installDebug
 adb shell am start -n com.ikk/.MainActivity
 ```
+
+## Layout
+
+```text
+IKK/
+├── settings.gradle.kts     defines which modules are in the build
+├── build.gradle.kts        shared config for all modules
+├── gradle/libs.versions.toml   dependency versions
+└── app/                    the Android application module
+    ├── build.gradle.kts
+    └── src/{main,test,androidTest}/kotlin/com/ikk/
+```
+
+The Gradle files at the root are the build's entry point and have to live
+there. Code organisation happens inside modules, and by adding modules.

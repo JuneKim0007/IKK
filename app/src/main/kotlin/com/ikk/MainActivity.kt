@@ -19,23 +19,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    AppRoot()
+                    Greeting(name = "World")
                 }
             }
         }
     }
 }
 
-// TODO: replace with the real top-level UI once the feature set is defined.
 @Composable
-fun AppRoot() {
+fun Greeting(name: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "IKK", style = MaterialTheme.typography.headlineMedium)
+        Text(text = greeting(name), style = MaterialTheme.typography.headlineMedium)
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun AppRootPreview() {
-    MaterialTheme { AppRoot() }
+fun GreetingPreview() {
+    MaterialTheme { Greeting(name = "World") }
 }
