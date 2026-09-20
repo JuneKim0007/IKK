@@ -1,12 +1,15 @@
 # fixtures
 
-One corpus, three implementations. Kotlin (`:core`), TypeScript
-(`frontend/web`) and Python (`backend`) all run these files and must agree.
+One corpus for every contract boundary. Kotlin `:packages:design-contract` is
+reused directly by Android and the Kotlin/Spring Boot 4.1.1 backend. The backend
+validates through that shared model before invoking the standalone Node.js
+emitter. The emitter assumes a prevalidated contract and runs every valid
+fixture deterministically when emitting CSS, HTML, and Compose Kotlin.
 
 | Directory | Assertion |
 |---|---|
-| `valid/` | parses, validates clean, and round-trips byte-identically |
-| `invalid/` | **rejected**, with the named rule in the violation list |
+| `valid/` | Kotlin parses, validates, and round-trips; Node codegen emits every target deterministically |
+| `invalid/` | Kotlin design-contract and the backend boundary **reject**, with the named rule in the violation list |
 
 Each `invalid/` file's name is the rule it violates. A parser that accepts one
 of them has a bug, whatever its own tests say.

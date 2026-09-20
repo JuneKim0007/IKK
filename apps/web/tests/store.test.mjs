@@ -65,8 +65,12 @@ test('created nodes are spec-valid', () => {
 test('undo restores the previous contract', () => {
   const store = new Store(fixture());
   const before = store.nodes().length;
-  store.remove(store.nodes()[0].id);
+  const removedId = store.nodes()[0].id;
+  store.remove(removedId);
   assert.equal(store.nodes().length, before - 1);
+  assert.ok(store.dirtyIds.has(removedId), 'a deletion must be synced');
+  store.dirtyIds.clear();
   store.undo();
   assert.equal(store.nodes().length, before);
+  assert.ok(store.dirtyIds.has(removedId), 'undo must sync the restored document');
 });

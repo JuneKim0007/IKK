@@ -8,6 +8,7 @@ const CODEGEN_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PATHS = {
   input: path.join(CODEGEN_DIR, "examples", "home.json"),
   css: path.join(CODEGEN_DIR, "generated", "web", "home.generated.css"),
+  html: path.join(CODEGEN_DIR, "generated", "web", "home.generated.html"),
   kotlin: path.join(CODEGEN_DIR, "generated", "android", "HomeLayout.generated.kt"),
 };
 
@@ -26,7 +27,7 @@ const NODE_TYPES = new Set(["rect", "text", "ellipse", "triangle", "line", "imag
 // let two contracts that render identically hash differently.
 const ALIGNMENTS = new Set(["start", "center", "end"]);
 const CONTENT_SCALES = new Set(["crop", "fit", "fill"]);
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const HEX_COLOR = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/;
 
 export class ContractError extends Error {
   constructor(location, message) {
@@ -91,8 +92,8 @@ function normalizeWeight(value, size, location) {
   if (value === undefined) return size >= 22 ? 600 : 400;
   const aliases = { normal: 400, medium: 500, semibold: 600 };
   const normalized = typeof value === "string" ? aliases[value.toLowerCase()] : value;
-  if (![400, 500, 600].includes(normalized)) {
-    fail(location, "expected 400, 500, 600, normal, medium, or semibold");
+  if (!Number.isInteger(normalized) || normalized < 100 || normalized > 900 || normalized % 100 !== 0) {
+    fail(location, "expected 100..900 in steps of 100");
   }
   return normalized;
 }
@@ -114,6 +115,11 @@ function normalizeText(value, location) {
     }
   }
 
+  const fontFamily = text.fontFamily === undefined
+    ? "Roboto"
+    : stringAt(text.fontFamily, `${location}.fontFamily`);
+  if (fontFamily !== "Roboto") fail(`${location}.fontFamily`, 'only "Roboto" is supported in contract v1');
+
   return {
     value: typeof text.value === "string"
       ? text.value
@@ -128,9 +134,7 @@ function normalizeText(value, location) {
     weight: normalizeWeight(text.weight, size, `${location}.weight`),
     align,
     color: colorAt(text.color, `${location}.color`),
-    fontFamily: text.fontFamily === undefined
-      ? "Roboto"
-      : stringAt(text.fontFamily, `${location}.fontFamily`),
+    fontFamily,
     maxLines,
   };
 }
@@ -212,6 +216,9 @@ function normalizeNode(key, value, inputOrder, seenIds, seenClasses) {
     alt: node.alt === undefined || node.alt === null
       ? null
       : stringAt(node.alt, `${location}.alt`),
+    sourceRef: node.source === undefined || node.source === null
+      ? null
+      : stringAt(objectAt(node.source, `${location}.source`).ref, `${location}.source.ref`),
   };
 }
 
@@ -359,6 +366,39 @@ export function generateCss(contract) {
   return `${lines.join("\n").trimEnd()}\n`;
 }
 
+function htmlText(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function htmlAttribute(value) {
+  return htmlText(value).replace(/"/g, "&quot;");
+}
+
+export function generateHtml(contract) {
+  const lines = [
+    `<!-- GENERATED FROM contract ${htmlAttribute(contract.checkpoint)} — DO NOT EDIT. -->`,
+    `<div class="screen" data-ikk-screen="${htmlAttribute(contract.screen)}">`,
+  ];
+
+  for (const node of contract.components.filter((candidate) => candidate.visible)) {
+    const classes = `ikk-node ${node.cssClass}`;
+    if (node.type === "image" && node.sourceRef) {
+      const source = `/v1/assets/${encodeURIComponent(node.sourceRef)}`;
+      lines.push(
+        `  <img class="${classes}" src="${source}" alt="${htmlAttribute(node.alt ?? "")}">`,
+      );
+    } else {
+      lines.push(`  <div class="${classes}">${htmlText(node.text?.value ?? "")}</div>`);
+    }
+  }
+
+  lines.push("</div>");
+  return `${lines.join("\n")}\n`;
+}
+
 function kotlinString(value) {
   let result = "";
   for (const character of String(value)) {
@@ -386,7 +426,10 @@ function kotlinUnit(value, unit) {
 }
 
 function kotlinColor(color) {
-  return `Color(0xFF${color.slice(1)})`;
+  const hex = color.slice(1);
+  return hex.length === 6
+    ? `Color(0xFF${hex})`
+    : `Color(0x${hex.slice(6)}${hex.slice(0, 6)})`;
 }
 
 /**
@@ -427,7 +470,8 @@ function kotlinAlignment(align) {
 function kotlinWeight(weight) {
   if (weight === 600) return "FontWeight.SemiBold";
   if (weight === 500) return "FontWeight.Medium";
-  return "FontWeight.Normal";
+  if (weight === 400) return "FontWeight.Normal";
+  return `FontWeight(${weight})`;
 }
 
 function kotlinContentScale(contentScale) {
@@ -612,7 +656,7 @@ function parseArguments(argv) {
       options.check = true;
       continue;
     }
-    if (["--input", "--css", "--kotlin"].includes(argument)) {
+    if (["--input", "--css", "--html", "--kotlin"].includes(argument)) {
       const value = argv[index + 1];
       if (!value) fail("arguments", `${argument} requires a path`);
       options[argument.slice(2)] = path.resolve(value);
@@ -652,12 +696,14 @@ export async function runCodegen(options) {
 
   const contract = normalizeContract(parsed);
   const css = generateCss(contract);
+  const html = generateHtml(contract);
   const kotlin = generateKotlin(contract);
   await Promise.all([
     writeOrCheck(options.css, css, options.check),
+    writeOrCheck(options.html, html, options.check),
     writeOrCheck(options.kotlin, kotlin, options.check),
   ]);
-  return { contract, css, kotlin };
+  return { contract, css, html, kotlin };
 }
 
 async function main() {
@@ -667,6 +713,7 @@ async function main() {
   process.stdout.write(
     `${mode} ${result.contract.components.length} components from ${path.relative(process.cwd(), options.input)}\n` +
     `css: ${path.relative(process.cwd(), options.css)}\n` +
+    `html: ${path.relative(process.cwd(), options.html)}\n` +
     `kotlin: ${path.relative(process.cwd(), options.kotlin)}\n`,
   );
 }

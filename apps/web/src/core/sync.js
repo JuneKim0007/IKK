@@ -5,9 +5,9 @@
  * an immediate policy would hammer the service into uselessness. 400ms is the
  * figure in docs/roadmap-frontend.md F3.2.
  *
- * The backend is being ported from Python to Java. Both speak docs/api.md, so
- * this layer does not care which is running — if neither is, the editor works
- * offline and the queue drains when one appears.
+ * The production backend is Kotlin/JVM with Spring Boot and speaks
+ * docs/api.md. If it is unavailable, the editor keeps working offline and the
+ * dirty queue drains after a later edit.
  */
 export class SyncClient {
   /**
@@ -22,6 +22,7 @@ export class SyncClient {
     /** @type {'offline'|'clean'|'pending'|'failed'} */
     this.status = 'offline';
     this._timer = null;
+    this._inFlight = null;
     this._listeners = new Set();
 
     store.subscribe(() => this.schedule());
@@ -54,21 +55,44 @@ export class SyncClient {
 
   async flush() {
     clearTimeout(this._timer);
+    if (this._inFlight) {
+      await this._inFlight;
+      return this.flush();
+    }
     if (!this.store.dirtyIds.size) return;
+    this._inFlight = this._flushOnce();
+    let succeeded;
+    try {
+      succeeded = await this._inFlight;
+    } finally {
+      this._inFlight = null;
+    }
+    if (succeeded && this.store.dirtyIds.size) return this.flush();
+  }
+
+  async _flushOnce() {
+    const sentVersions = new Map(
+      [...this.store.dirtyIds].map((id) => [id, this.store.byId(id)?.version ?? null]),
+    );
+    const body = JSON.stringify(this.store.contract);
     try {
       const res = await fetch(
         `${this.baseUrl}/v1/projects/${this.projectId}/contract`,
         {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(this.store.contract),
+          body,
         },
       );
-      if (!res.ok) { this._setStatus('failed'); return; }
-      this.store.dirtyIds.clear();
-      this._setStatus('clean');
+      if (!res.ok) { this._setStatus('failed'); return false; }
+      for (const [id, version] of sentVersions) {
+        if ((this.store.byId(id)?.version ?? null) === version) this.store.dirtyIds.delete(id);
+      }
+      this._setStatus(this.store.dirtyIds.size ? 'pending' : 'clean');
+      return true;
     } catch {
       this._setStatus('offline');  // queue survives; it drains on the next edit
+      return false;
     }
   }
 
@@ -97,8 +121,11 @@ export class SyncClient {
   /** docs/api.md — cut a checkpoint and return generated artifacts. */
   async generate() {
     await this.flush();
+    if (this.store.dirtyIds.size) throw new Error('sync is not clean');
     const res = await fetch(`${this.baseUrl}/v1/projects/${this.projectId}/generate`, { method: 'POST' });
     if (!res.ok) throw new Error(`generate failed: ${res.status}`);
-    return res.json();
+    const result = await res.json();
+    this.store.contract.checkpoint = result.checkpoint;
+    return result;
   }
 }

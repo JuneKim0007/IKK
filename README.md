@@ -6,20 +6,22 @@ A designer draws a screen. A developer gets `.css` and `.kt` generated from the
 same JSON the designer was editing. Neither hands the other a file — they hold
 two views of one object.
 
-Hackathon scope: one laptop, one process, no database, no cloud. Everything
-here runs from `./gradlew` and a browser tab.
+Hackathon scope: a browser editor and an Android/Compose client target one JSON
+contract. A Kotlin/JVM Spring Boot backend reuses the Kotlin contract package,
+persists it in H2 or PostgreSQL, and invokes one deterministic Node.js emitter
+for Web CSS/HTML and Android Compose Kotlin. No model call is needed to convert
+the contract into code.
 
 ## Where this stands
 
 | Area | State |
 |---|---|
-| JSON contract, Kotlin + Python models | Implemented, 3 suites green |
-| Deterministic codegen (`packages/codegen`) | Implemented — emits `.kt` and `.css` |
-| Backend (`apps/backend`) | Runs; validates, stores, generates. No database |
+| JSON contract (`packages/design-contract`) | Kotlin model reused directly by the backend; fixture suite green |
+| Deterministic codegen (`packages/codegen`) | Implemented — emits `.kt`, `.css`, and structure-only `.html` |
+| Backend (`apps/backend`) | Kotlin/Spring Boot; JDBC + Flyway; H2/PostgreSQL; sync, checkpoints, assets, generation |
 | Android application | Hello World scaffold |
-| Web application | Static device-frame harness |
-| Android and Web editor UX | Interactive prototypes only |
-| Sync, checkpoints, assets | Not started |
+| Web application | Interactive editor in `apps/web` |
+| Sync | Backend node API implemented; Web uses debounced contract sync; Android integration remains |
 
 Authority order is in [docs/README.md](docs/README.md): the JSON contract wins
 over the component model, the roadmap, and the prototypes.
@@ -57,9 +59,9 @@ flowchart TB
         AND["Android app<br/>Compose"]
     end
 
-    subgraph srv["Local backend — one process, no DB"]
-        CONTRACT[("contract.json<br/>per-node, versioned")]
-        GEN["Static emitters<br/>JSON to CSS / Kotlin"]
+    subgraph srv["Kotlin/JVM Spring Boot backend"]
+        CONTRACT[("contract store<br/>per-node, versioned")]
+        GEN["Node.js emitter<br/>JSON to CSS / HTML / Kotlin"]
     end
 
     subgraph out["Generated artifacts — read-only"]
@@ -97,7 +99,7 @@ driven by different triggers**.
 | Trigger | an edit | the `[Generate]` button |
 | Cadence | debounce ~400 ms, reconcile every 5 s | only when a human asks |
 | Granularity | one node | the whole screen, plus a checkpoint |
-| Writes | rows in `contract.json` | `.css` / `.html` / `.kt` on disk |
+| Writes | versioned node rows | immutable checkpoint + generated artifact records |
 | If it goes wrong | stale canvas, fixed by the next tick | wrong code committed |
 
 If the 5-second tick also generated code, every keystroke would cut a
@@ -110,24 +112,24 @@ sequenceDiagram
     actor D as Designer
     participant E as Editor
     participant B as Backend
-    participant F as Files on disk
+    participant A as Artifact store
 
     Note over D,B: contract clock — continuous
     D->>E: drag a rectangle
     E->>E: mark node dirty, bump version
-    E-->>B: PUT /nodes/rect_1 (400ms after last edit)
+    E-->>B: PUT /v1/projects/{id}/nodes (400ms after last edit)
     B-->>E: 200
     loop every 5s
-        E->>B: GET /contract?since=version
-        B-->>E: changed nodes only
+        E->>B: GET /v1/projects/{id}/contract
+        B-->>E: current contract
     end
 
-    Note over D,F: artifact clock — discrete
+    Note over D,A: artifact clock — discrete
     D->>E: click [Generate]
     E->>E: refuse if the queue is still dirty
     E->>B: POST /v1/projects/{id}/generate
     B->>B: cut checkpoint cp_006
-    B->>F: write .css / .html / .kt
+    B->>A: store .css / .html / .kt
     B-->>E: {checkpoint, artifacts[]}
 ```
 
@@ -157,26 +159,25 @@ latency on your own edit, and a request every 5 s from an idle tab.
 POST /v1/projects/{id}/generate
 Content-Type: application/json
 
-{ "screen": "Home" }
+{ "targets": ["css", "html", "kotlin"] }
 ```
 
 ```json
 {
   "checkpoint": "cp_006",
   "artifacts": [
-    "frontend/web/generated/home.generated.css",
-    "frontend/web/generated/home.generated.html",
-    "app/src/main/kotlin/com/ikk/ui/generated/HomeLayout.generated.kt"
+    { "name": "home.generated.css", "target": "css", "bytes": 920 },
+    { "name": "home.generated.html", "target": "html", "bytes": 480 },
+    { "name": "HomeLayout.generated.kt", "target": "kotlin", "bytes": 1840 }
   ]
 }
 ```
 
-`POST`, not `GET` — it cuts a checkpoint and writes files. That is a mutation
-with side effects, and a route that a browser or a link prefetcher can trigger
-by accident is a route that will rewrite someone's working tree.
+`POST`, not `GET` — it cuts a checkpoint and stores newly generated artifacts.
+That is a mutation with side effects, so browser prefetching must not trigger it.
 
-Codegen runs **on the backend, not in either client**. Both surfaces then get
-byte-identical output, and neither has to ship an emitter.
+The backend invokes `packages/codegen`; it does not implement a second emitter.
+Both clients therefore receive output from the same deterministic implementation.
 
 ---
 
@@ -223,22 +224,21 @@ per-device table.
 
 ## Global names are the join key
 
-The map key in the contract — `rect_1`, `text_2` — becomes the CSS class *and*
+The map key in the contract — `rect_signIn`, `text_greeting` — becomes the CSS class *and*
 the Compose identifier. That name is the entire connection between the
 designer's rectangle and the developer's code.
 
 ```
-contract key   rect_1
-     ├── CSS        .rect_1
+contract key   rect_signIn
+     ├── CSS        .rect_signIn
      └── Kotlin     HomeLayout, node index 0
 ```
 
 Two consequences, both deliberate:
 
-1. **The key is stable for the life of the node.** A node has both an `id`
-   (used by sync and conflict resolution) and a map key (used by codegen). They
-   are separate so a node can be renamed in generated output without breaking
-   its sync history.
+1. **The id is stable; the key is derived.** A node's `id` carries sync identity.
+   Its `{type}_{slug(name)}` map key is used by codegen and changes on rename;
+   generated files are replaced together, so those names stay aligned.
 2. **Generated files are never hand-edited.** They are rewritten wholesale on
    every `[Generate]`. Behaviour lives in a sibling file that imports the
    generated names, so regeneration can never destroy authored code.
@@ -273,8 +273,8 @@ Targets are fixed. This is not a plugin system.
 | Android output | Kotlin + Compose | XML layouts, Views |
 | Node types | rect, ellipse, text, image | groups, components, variants |
 | Layout | relative geometry only | flex, constraints, auto-layout |
-| Sync | per-node last-write-wins | operational transform, CRDTs, presence |
-| Data | one screen, one `contract.json` | multi-project, auth, a database |
+| Sync | per-node monotonic versions (higher version wins) | operational transform, CRDTs, presence |
+| Data | one screen per project, H2/PostgreSQL, optional bearer token | roles, CRDTs, hosted multi-tenancy |
 
 Cut order if time runs out, from [`docs/roadmap.md`](docs/roadmap.md) — each
 line is still a demonstrable product:
@@ -293,21 +293,28 @@ between surfaces, and the generated/authored file boundary.
 ## Repo layout
 
 ```text
-docs/           json_contract.md   normative spec — the authority
-                component-model.md class tree behind the contract
-                roadmap.md         build order, cut lines, risks
-prototype/      standalone HTML prototypes of the editor and pipeline
-                (not in the Gradle build)
-frontend/       web surface and the shared-UI proposal
-app/ data/ core Android app, Kotlin modules (see below)
+apps/
+  backend/                 Kotlin/JVM Spring Boot API
+  web/                     browser editor
+  android/app/             Compose application
+  android/data/            Android data layer
+packages/
+  design-contract/         shared Kotlin contract and validation
+  codegen/                 deterministic CSS, HTML, and Compose emitter
+docs/                      contract, API, architecture, and roadmaps
+.github/workflows/         CI split by product concern
 ```
 
----
-## The Gradle scaffold
+The backend and contract are both Kotlin/JVM. The backend consumes
+`:packages:design-contract` directly, so there is no Java mirror that can drift.
+Kotlin compiles to ordinary JVM bytecode and remains callable from Java if a
+future JVM consumer needs it.
 
-What exists in the build today, independent of the pipeline above.
+## Build and run
 
-### Requirements
+Requirements: JDK 21 for the backend, Node.js 18+, and the checked-in Gradle
+wrapper. Android work additionally needs Android SDK API 37; its modules use a
+Java 17 toolchain.
 
 - JDK 17; Gradle toolchains can provision it automatically
 - Android SDK with API 37 installed
@@ -397,37 +404,40 @@ real data source ever lands here, fold it into `app`.
 | `prototype/` | Standalone HTML UI prototypes. Not part of the Gradle build |
 
 ### Build
+Run the browser editor and backend together:
 
 ```sh
-./gradlew test
-./gradlew assembleDebug
+make up
 ```
 
-### Test
+The editor is served on `http://127.0.0.1:5173` and the API on
+`http://127.0.0.1:8000`. `make down` stops both. See
+[`docs/api.md`](docs/api.md) for the HTTP contract and
+[`apps/backend/README.md`](apps/backend/README.md) for database and auth
+configuration.
+
+Run the non-Android suites:
 
 ```sh
-./gradlew :packages:design-contract:test
-./gradlew :apps:android:data:testDebugUnitTest
-./gradlew :apps:android:app:assembleDebug
+./gradlew :packages:design-contract:test :apps:backend:test :apps:backend:bootJar
+npm test --prefix packages/codegen
+npm test --prefix apps/web
 ```
 
-`app` currently has no unit tests — its logic lives in the modules below it.
-
-Note that `connectedDebugAndroidTest` uninstalls the app when it finishes, so
-run `installDebug` again before launching by hand.
-
-### Run
-
-Open the project root in IntelliJ IDEA / Android Studio and let it import the
-Gradle build, then run the `app` configuration. From the command line:
+With Android SDK API 37 installed:
 
 ```sh
-./gradlew :apps:android:app:installDebug
-adb shell am start -n com.ikk/.MainActivity
+./gradlew :apps:android:data:testDebugUnitTest \
+  :apps:android:app:testDebugUnitTest \
+  :apps:android:app:assembleDebug
 ```
 
-### Known issues
+The integrated smoke test starts both local processes, imports a contract over
+HTTP, and verifies that Kotlin, CSS, and HTML artifacts come back:
 
 - `compileSdk`, `minSdk` and the Kotlin 17 settings are duplicated across `app`
   and `data`. Move to a convention plugin under `build-logic/` if a third
   Android module appears.
+```sh
+make e2e
+```

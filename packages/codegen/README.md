@@ -3,6 +3,7 @@
 Deterministic contract generator for the two MVP targets:
 
 - Web: `generated/web/home.generated.css`
+- Web structure: `generated/web/home.generated.html`
 - Android: `generated/android/HomeLayout.generated.kt` (Jetpack Compose)
 
 No model call is involved. The same validated contract is normalized once and
@@ -22,17 +23,18 @@ The default input is `examples/home.json`. Custom paths can be supplied from
 the repository root:
 
 ```sh
-node codegen/generate.mjs \
+node packages/codegen/generate.mjs \
   --input path/to/contract.json \
   --css path/to/home.generated.css \
+  --html path/to/home.generated.html \
   --kotlin path/to/HomeLayout.generated.kt
 ```
 
-Use `--check` in CI. It exits unsuccessfully when either generated file is
+Use `--check` in CI. It exits unsuccessfully when any generated file is
 missing or stale:
 
 ```sh
-node codegen/generate.mjs --check
+node packages/codegen/generate.mjs --check
 ```
 
 ## Contract v1 assumptions
