@@ -18,7 +18,7 @@ object RawContractValidator {
     private val nodeTypes = setOf("rect", "ellipse", "triangle", "line", "text", "image")
 
     private val rootFields = setOf(
-        "schemaVersion", "checkpoint", "screen", "reference", "layout", "components",
+        "schemaVersion", "checkpoint", "screen", "reference", "layout", "components", "background",
     )
     private val referenceFields = setOf("w", "h", "unit")
     private val nodeFields = setOf(
@@ -32,6 +32,7 @@ object RawContractValidator {
         "value", "size", "align", "color", "weight", "lineHeight", "fontFamily", "maxLines",
     )
     private val sourceFields = setOf("ref", "mime")
+    // A line is its bounding box plus which diagonal it runs along.
     private val lineFields = setOf("orientation")
 
     fun validate(root: tools.jackson.databind.JsonNode): List<Violation> =

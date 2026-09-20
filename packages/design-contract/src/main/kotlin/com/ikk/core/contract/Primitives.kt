@@ -10,7 +10,10 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import kotlin.math.round
 
 /** docs/json_contract.md §5 — geometry is always a percentage of the frame. */
@@ -77,6 +80,85 @@ object ColorSerializer : KSerializer<Color> {
     override fun serialize(encoder: Encoder, value: Color) = encoder.encodeString(value.hex)
     override fun deserialize(decoder: Decoder): Color = Color.of(decoder.decodeString())
 }
+
+/**
+ * docs/json_contract.md §3.1 — a fill is a colour or a gradient, and the same
+ * value is legal on a node and on the screen background.
+ *
+ * Two fill models, one for nodes and one for the background, is how a designer
+ * ends up able to put a gradient behind the screen but not inside a card.
+ */
+@Serializable(with = FillSerializer::class)
+sealed interface Fill {
+    @JvmInline
+    value class Solid(val color: Color) : Fill
+
+    @Serializable
+    data class LinearGradient(
+        /** Degrees clockwise from "to top", matching CSS. */
+        val angle: Double = 180.0,
+        val stops: List<GradientStop>,
+        /** Carried explicitly so the round trip needs no injection step. */
+        val type: String = "linear",
+    ) : Fill {
+        init {
+            require(type == "linear") { "only \"linear\" gradients exist in v1, got \"$type\"" }
+            // V25. One stop is a solid colour wearing a gradient's clothes, and
+            // out-of-order stops render differently on every engine.
+            require(stops.size >= 2) { "a gradient needs at least two stops (V25)" }
+            require(stops.all { it.at in 0.0..100.0 }) { "gradient stop out of 0..100 (V25)" }
+            require(stops.zipWithNext().all { (a, b) -> a.at <= b.at }) {
+                "gradient stops must not decrease (V25)"
+            }
+        }
+    }
+}
+
+@Serializable
+data class GradientStop(val color: Color, val at: Double)
+
+/**
+ * A fill is written as a bare colour string when it is solid, and as an object
+ * when it is a gradient. One shape with a discriminator would be tidier, but
+ * `"fill": "#141021"` is what every existing contract and fixture already
+ * carries, and a format that forces them all to change to gain a wrapper is a
+ * cost with no reader.
+ */
+object FillSerializer : KSerializer<Fill> {
+    override val descriptor = PrimitiveSerialDescriptor("Fill", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: Fill) {
+        val json = encoder as? JsonEncoder ?: throw SerializationException("Fill is JSON-only")
+        when (value) {
+            is Fill.Solid -> json.encodeJsonElement(JsonPrimitive(value.color.hex))
+            is Fill.LinearGradient ->
+                json.encodeJsonElement(
+                    json.json.encodeToJsonElement(Fill.LinearGradient.serializer(), value)
+                )
+        }
+    }
+
+    override fun deserialize(decoder: Decoder): Fill {
+        val json = decoder as? JsonDecoder ?: throw SerializationException("Fill is JSON-only")
+        return when (val element = json.decodeJsonElement()) {
+            is JsonPrimitive ->
+                if (element.isString) Fill.Solid(Color.of(element.content))
+                else throw SerializationException("a solid fill must be a colour string")
+            is JsonObject -> {
+                val type = (element["type"] as? JsonPrimitive)?.content
+                if (type != "linear") {
+                    throw SerializationException("only \"linear\" gradients exist in v1, got \"$type\"")
+                }
+                json.json.decodeFromJsonElement(Fill.LinearGradient.serializer(), element)
+            }
+            else -> throw SerializationException("fill must be a colour string or a gradient object")
+        }
+    }
+}
+
+/** docs/json_contract.md §3.1 — the screen surface. */
+@Serializable
+data class Background(val fill: Fill? = null)
 
 /** docs/json_contract.md §7 — width is dp, alignment is INSIDE on both targets. */
 @Serializable

@@ -1,5 +1,6 @@
 import { BaseElement } from '../core/BaseElement.js';
-import { PALETTE, textPayload, normalizeColor, capabilities, REFERENCE } from '../contract/schema.js';
+import { PALETTE, BACKGROUND_PRESETS, backgroundCss, textPayload, normalizeColor,
+         capabilities, REFERENCE } from '../contract/schema.js';
 
 /** Properties for the selection. Controls only appear when the node has them. */
 export class Inspector extends BaseElement {
@@ -44,7 +45,13 @@ export class Inspector extends BaseElement {
     body.innerHTML = '';
 
     if (!node) {
-      body.innerHTML = '<p class="hint">Nothing selected. Pick a tool and drag on the canvas, or click a shape.</p>';
+      // With nothing selected the panel is not empty — it is the screen's own
+      // properties, which is the only place the background can live.
+      body.appendChild(this._background(store));
+      body.appendChild(Object.assign(document.createElement('p'), {
+        className: 'hint',
+        textContent: 'Select a component to edit it, or pick a tool and drag on the canvas.',
+      }));
       return;
     }
 
@@ -74,6 +81,42 @@ export class Inspector extends BaseElement {
     input.addEventListener('change', () => onChange(Number(input.value)));
     wrap.appendChild(input);
     return wrap;
+  }
+
+  _background(store) {
+    const g = this._group('Background');
+
+    const row = document.createElement('div');
+    row.className = 'presets';
+    for (const preset of BACKGROUND_PRESETS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'preset';
+      b.title = preset.name;
+      b.setAttribute('aria-label', `Background: ${preset.name}`);
+      const css = backgroundCss({ fill: preset.fill });
+      b.style.background = css ?? '';
+      if (!css) b.classList.add('preset-none');
+      const current = JSON.stringify(store.contract.background?.fill ?? null);
+      b.setAttribute('aria-pressed', String(current === JSON.stringify(preset.fill ?? null)));
+      b.addEventListener('click', () => {
+        store.setBackground(preset.fill);
+        this.render(store);
+      });
+      const label = document.createElement('span');
+      label.textContent = preset.name;
+      b.appendChild(label);
+      row.appendChild(b);
+    }
+    g.appendChild(row);
+
+    g.appendChild(this._swatchRow('Surface', typeof store.contract.background?.fill === 'string'
+      ? store.contract.background.fill : null, (hex) => {
+        store.setBackground(hex);
+        this.render(store);
+      }, { allowNone: true }));
+
+    return g;
   }
 
   _geometry(store, node) {

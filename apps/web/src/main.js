@@ -64,6 +64,8 @@ async function boot() {
     onTool: (t) => { canvas.frame.dataset.tool = t; },
     onUndo: () => store.undo(),
     onDelete: () => store.selectedId && store.remove(store.selectedId),
+    // Deselecting IS opening the screen panel — the background lives there.
+    onBackground: () => store.select(null),
     onGenerate: async () => {
       try {
         const out = await sync.generate();
@@ -99,6 +101,7 @@ async function boot() {
 
   new Keymap({
     onTool: (t) => toolbar.setTool(t),
+    onBackground: () => store.select(null),
     onUndo: () => store.undo(),
     onDelete: () => store.selectedId && store.remove(store.selectedId),
     onEscape: () => {

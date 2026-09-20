@@ -160,3 +160,51 @@ class IdentityTest {
     @Test(expected = IllegalArgumentException::class)
     fun `V13 rejects a blank name`() { rect("uuid-1", "   ") }
 }
+
+/** docs/json_contract.md §3.1 — the screen surface. */
+class BackgroundTest {
+    private val t = Instant.parse("2026-09-20T14:22:31Z")
+    private fun contract(bg: Background?) = Contract(
+        checkpoint = "cp_001", screen = "Home", background = bg,
+        components = emptyMap(),
+    )
+
+    private fun roundTrip(c: Contract) = ContractJson.decode(ContractJson.encode(c))
+
+    @Test fun `a solid background round trips`() {
+        val c = contract(Background(Fill.Solid(Color.of("#141021"))))
+        assertEquals(c, roundTrip(c))
+    }
+
+    @Test fun `a solid background serialises as a bare colour string`() {
+        val json = ContractJson.encode(contract(Background(Fill.Solid(Color.of("#141021")))))
+        assertTrue(json, json.contains("\"fill\":\"#141021\""))
+    }
+
+    @Test fun `a gradient background round trips`() {
+        val c = contract(Background(Fill.LinearGradient(135.0, listOf(
+            GradientStop(Color.of("#F49AA8"), 0.0),
+            GradientStop(Color.of("#C86DD7"), 100.0),
+        ))))
+        assertEquals(c, roundTrip(c))
+    }
+
+    @Test fun `an absent background is absent, not white`() {
+        val back = roundTrip(contract(null))
+        assertEquals(null, back.background)
+    }
+
+    /** V25 — one stop is a solid colour wearing a gradient's clothes. */
+    @Test(expected = IllegalArgumentException::class)
+    fun `a gradient needs at least two stops`() {
+        Fill.LinearGradient(90.0, listOf(GradientStop(Color.of("#000000"), 0.0)))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `gradient stops must not decrease`() {
+        Fill.LinearGradient(90.0, listOf(
+            GradientStop(Color.of("#000000"), 80.0),
+            GradientStop(Color.of("#FFFFFF"), 20.0),
+        ))
+    }
+}

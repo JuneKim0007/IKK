@@ -26,6 +26,9 @@ class ContractStore(
             put("unit", project.referenceUnit)
         }
         put("layout", project.layout)
+        // Absent stays absent — emitting an empty object would make "no
+        // background" indistinguishable from "a background with no fill".
+        project.background?.let { set("background", read(it)) }
         val components = putObject("components")
         jdbc.query(
             "SELECT node_key, payload FROM nodes WHERE project_id = ? ORDER BY node_key",
@@ -43,7 +46,8 @@ class ContractStore(
             """
             UPDATE projects
             SET schema_version = ?, current_checkpoint = ?, screen = ?, reference_w = ?,
-                reference_h = ?, reference_unit = ?, layout = ?, updated_at = ?
+                reference_h = ?, reference_unit = ?, layout = ?, background = ?,
+                updated_at = ?
             WHERE id = ?
             """.trimIndent(),
             contract.path("schemaVersion").intValue(),
@@ -53,6 +57,7 @@ class ContractStore(
             reference.path("h").intValue(),
             reference.path("unit").stringValue(),
             contract.path("layout").stringValue(),
+            contract.get("background")?.takeUnless { it.isNull }?.toString(),
             Instant.now().toJdbcTime(),
             projectId,
         )

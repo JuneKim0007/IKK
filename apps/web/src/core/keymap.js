@@ -30,6 +30,7 @@ export class Keymap {
   constructor(handlers) {
     this.handlers = handlers;
     this.tools = { v: 'move', r: 'rect', o: 'ellipse', y: 'triangle', l: 'line', t: 'text', i: 'image' };
+    this.actions = { b: () => this.handlers.onBackground?.() };
     addEventListener('keydown', (e) => this._onKey(e));
   }
 
@@ -50,6 +51,9 @@ export class Keymap {
 
     // Anything else with a modifier belongs to the browser.
     if (mod || e.altKey) return;
+
+    const action = this.actions[e.key.toLowerCase()];
+    if (action) { e.preventDefault(); action(); return; }
 
     const tool = this.tools[e.key.toLowerCase()];
     if (tool) { e.preventDefault(); this.handlers.onTool?.(tool); return; }

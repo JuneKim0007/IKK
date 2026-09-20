@@ -32,6 +32,12 @@ export const icons = {
   /** Triangle alone, for the flyout row. */
   triangle: () => svg(`<path d="M10 3.4 17.2 16.2H2.8Z"/>`),
 
+  /** Background: a framed surface with a gradient wash. */
+  background: () => svg(`
+    <rect x="2.4" y="3.4" width="15.2" height="13.2" rx="2.2"/>
+    <path d="M2.4 12.2 6.6 8.4l3.4 2.8 3-2.4 4.6 3.6" opacity=".9"/>
+    <circle cx="13.4" cy="7" r="1.3" fill="currentColor" stroke="none"/>`),
+
   /** Line: a bare diagonal stroke. */
   line: () => svg(`<path d="M3.4 16.6 16.6 3.4"/>`),
 

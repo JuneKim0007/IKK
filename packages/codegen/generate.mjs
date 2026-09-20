@@ -222,6 +222,69 @@ function normalizeNode(key, value, inputOrder, seenIds, seenClasses) {
   };
 }
 
+/**
+ * docs/json_contract.md §3.1 — a colour string, or a linear gradient object.
+ * Absent stays absent: "no background" is not the same as white, and a
+ * renderer that substitutes white silently changes a dark design.
+ */
+function normalizeBackground(value, location) {
+  if (value === undefined || value === null) return null;
+  const background = objectAt(value, location);
+  const fill = background.fill;
+  if (fill === undefined || fill === null) return { fill: null };
+
+  if (typeof fill === "string") {
+    return { fill: { kind: "solid", color: colorAt(fill, `${location}.fill`) } };
+  }
+
+  const gradient = objectAt(fill, `${location}.fill`);
+  if (gradient.type !== "linear") {
+    fail(`${location}.fill.type`, 'only "linear" gradients exist in v1');
+  }
+  const stops = Array.isArray(gradient.stops)
+    ? gradient.stops
+    : fail(`${location}.fill.stops`, "expected an array");
+  if (stops.length < 2) fail(`${location}.fill.stops`, "a gradient needs at least two stops");
+
+  let previous = -Infinity;
+  const normalized = stops.map((stop, i) => {
+    const at = numberAt(stop.at, `${location}.fill.stops[${i}].at`);
+    if (at < 0 || at > 100) fail(`${location}.fill.stops[${i}].at`, "must be within 0..100");
+    if (at < previous) fail(`${location}.fill.stops[${i}].at`, "stops must not decrease");
+    previous = at;
+    return { color: colorAt(stop.color, `${location}.fill.stops[${i}].color`), at };
+  });
+
+  return {
+    fill: {
+      kind: "linear",
+      angle: gradient.angle === undefined ? 180 : numberAt(gradient.angle, `${location}.fill.angle`),
+      stops: normalized,
+    },
+  };
+}
+
+function cssBackground(fill) {
+  if (fill.kind === "solid") return fill.color;
+  const stops = fill.stops.map((s) => `${s.color} ${numberText(s.at)}%`).join(", ");
+  return `linear-gradient(${numberText(fill.angle)}deg, ${stops})`;
+}
+
+/**
+ * CSS measures the angle clockwise from "to top"; Compose takes start and end
+ * offsets instead. The conversion lives here so neither renderer repeats it.
+ */
+function kotlinBrushStops(fill) {
+  return fill.stops
+    .map((s) => `${numberText(round(s.at / 100, 4))}f to Color(0xFF${s.color.slice(1)})`)
+    .join(", ");
+}
+
+function kotlinBrushDirection(fill) {
+  const radians = ((fill.angle - 90) * Math.PI) / 180;
+  return { dx: round(Math.cos(radians), 4), dy: round(Math.sin(radians), 4) };
+}
+
 export function normalizeContract(value) {
   const contract = objectAt(value, "contract");
   // docs/json_contract.md §2 — the field is schemaVersion, and an unknown one
@@ -236,6 +299,7 @@ export function normalizeContract(value) {
   const reference = objectAt(contract.reference, "contract.reference");
   if (reference.unit !== "dp") fail("contract.reference.unit", 'only "dp" is supported');
 
+  const background = normalizeBackground(contract.background, "contract.background");
   const rawComponents = objectAt(contract.components, "contract.components");
   const seenIds = new Set();
   const seenClasses = new Set();
@@ -254,6 +318,7 @@ export function normalizeContract(value) {
       h: positiveNumberAt(reference.h, "contract.reference.h"),
     },
     layout: "relative",
+    background,
     components,
   };
 }
@@ -312,6 +377,9 @@ export function generateCss(contract) {
     ".screen {",
     "  position: relative;",
     "  width: 100%;",
+    ...(contract.background?.fill
+      ? [`  background: ${cssBackground(contract.background.fill)};`]
+      : []),
     `  aspect-ratio: ${numberText(contract.reference.w)} / ${numberText(contract.reference.h)};`,
     "  overflow: hidden;",
     "}",
@@ -523,6 +591,10 @@ export function generateKotlin(contract) {
     "import androidx.compose.foundation.border",
     "import androidx.compose.foundation.layout.Box",
     "import androidx.compose.foundation.layout.BoxWithConstraints",
+    ...(contract.background?.fill?.kind === "linear"
+      ? ["import androidx.compose.ui.geometry.Offset",
+         "import androidx.compose.ui.graphics.Brush"]
+      : []),
     "import androidx.compose.foundation.layout.aspectRatio",
     "import androidx.compose.foundation.layout.offset",
     "import androidx.compose.foundation.layout.padding",
@@ -584,14 +656,43 @@ export function generateKotlin(contract) {
       "    ) -> Unit = { _, _, _, imageModifier -> Box(imageModifier) },",
     );
   }
+  // docs/json_contract.md §3.1. Absent stays absent: painting white here would
+  // silently change a design that assumes a dark surface.
+  const backgroundFill = contract.background?.fill ?? null;
+  let surfaceModifier = "";
+  if (backgroundFill?.kind === "solid") {
+    surfaceModifier = `\n            .background(Color(0xFF${backgroundFill.color.slice(1)}))`;
+  } else if (backgroundFill?.kind === "linear") {
+    const { dx, dy } = kotlinBrushDirection(backgroundFill);
+    surfaceModifier =
+      "\n            .background(" +
+      "\n                Brush.linearGradient(" +
+      `\n                    ${kotlinBrushStops(backgroundFill)},` +
+      `\n                    start = Offset(0f, 0f),` +
+      `\n                    end = Offset(${kotlinFloat(dx)} * 1000f, ${kotlinFloat(dy)} * 1000f),` +
+      "\n                )," +
+      "\n            )";
+  }
+
   lines.push(
     ") {",
     "    BoxWithConstraints(",
-    `        modifier = modifier.aspectRatio(${kotlinFloat(contract.reference.w)} / ${kotlinFloat(contract.reference.h)}),`,
+    `        modifier = modifier.aspectRatio(${kotlinFloat(contract.reference.w)} / ${kotlinFloat(contract.reference.h)})${surfaceModifier},`,
     "    ) {",
     ...indent(REL_KT_LINES, 8),
     "",
   );
+
+  // Several features can ask for the same import — a line and a gradient both
+  // need Offset — so the block is de-duplicated and sorted once, here, rather
+  // than each site guessing what another might have added.
+  const firstImport = lines.findIndex((l) => l.startsWith("import "));
+  if (firstImport !== -1) {
+    let last = firstImport;
+    while (last + 1 < lines.length && lines[last + 1].startsWith("import ")) last += 1;
+    const unique = [...new Set(lines.slice(firstImport, last + 1))].sort();
+    lines.splice(firstImport, last - firstImport + 1, ...unique);
+  }
 
   for (const node of visibleNodes) {
     const modifierLines = kotlinModifierLines(node);

@@ -54,6 +54,7 @@ documented default is **not** breaking.
   "screen": "Home",
   "reference": { "w": 375, "h": 667, "unit": "dp" },
   "layout": "relative",
+  "background": { "fill": "#141021" },
   "components": { }
 }
 ```
@@ -81,6 +82,54 @@ a node changes this key; the stable sync identity is the component's `id`.
 Paint order is **`z`, ascending** — not map iteration order. JSON object key
 order is not guaranteed to survive a round trip through every parser, so
 relying on it is a bug waiting for a different language.
+
+---
+
+## 3.1 · Screen background
+
+```json
+"background": { "fill": "#141021" }
+
+"background": { "fill": { "type": "linear", "angle": 135,
+                          "stops": [ { "color": "#F49AA8", "at": 0 },
+                                     { "color": "#C86DD7", "at": 100 } ] } }
+```
+
+Optional. **Absent means the surface is undefined** and the renderer paints
+nothing behind the nodes — which is not the same as white. A design that
+assumes a dark surface must say so, or the generated Android output diverges
+from the editor the moment the device theme changes.
+
+`fill` is a colour, or a linear gradient:
+
+| Field | Type | Notes |
+|---|---|---|
+| `type` | `"linear"` | Only linear in v1 |
+| `angle` | number | Degrees clockwise from "to top", as in CSS. `180` points down |
+| `stops` | array | At least two, each `at` in 0–100, non-decreasing |
+
+### Gradients are background-only in v1
+
+A node's `fill` stays a flat colour. Making it colour-or-gradient is the more
+elegant model and it is deliberately deferred: it changes the type of a field
+that every implementation, every fixture and both emitters already read, and
+that cost buys nothing the background does not already deliver for the
+surfaces people actually gradient.
+
+When it lands, `Fill` is already the right shape to reuse — it is defined as a
+sealed type rather than inlined into `Background` for exactly that reason.
+
+### Mapping. Normative.
+
+| | CSS | Compose |
+|---|---|---|
+| colour | `background: #141021` | `.background(Color(0xFF141021))` |
+| gradient | `linear-gradient(135deg, …)` | `.background(Brush.linearGradient(…))` |
+
+**The angle conventions differ.** CSS `0deg` points *up* and increases
+clockwise; Compose's `linearGradient` takes start and end offsets rather than
+an angle. The generator converts, so the trigonometry lives in one place and
+neither renderer repeats it.
 
 ---
 
@@ -496,6 +545,8 @@ A contract is valid when all hold. Reject, do not repair.
 | V22 | Every component map key contains at most 240 characters |
 | V23 | `type == "triangle"` ⟹ `stroke` is `null` and `radius` is `0` |
 | V24 | `type == "line"` ⟹ `fill` is `null` and `stroke` is non-null with `stroke.width > 0` |
+| V25 | A gradient has `type == "linear"`, at least two `stops`, each `at` in 0–100 and non-decreasing |
+| V26 | `background.fill`, when present, is a colour or a linear gradient |
 
 V11 is the one people want to relax. Do not. A field one implementation writes
 and another silently drops is a divergence that only shows up at a demo.
