@@ -1,133 +1,98 @@
 # IKK
 
-Android application (Kotlin + Jetpack Compose). Currently a Hello World
-scaffold on a layered multi-module build.
+IKK is a contract-driven UI editor. A design is stored as one versioned JSON
+contract and rendered by separate Android and Web surfaces. Deterministic
+codegen will emit platform artifacts from that contract; authored behaviour
+stays outside generated files.
+
+## Repository map
+
+```text
+apps/
+├── android/
+│   ├── app/                  Android launcher and Compose UI
+│   └── data/                 Android repositories and data sources
+└── web/                      Web editor surface
+
+packages/
+└── design-contract/          Kotlin contract model, validation, serialization
+
+prototypes/
+├── editor-android/           Android interaction specification
+├── editor-web/               Web interaction specification
+├── shared/                   Shared prototype-only editor logic
+├── pipeline/                 Codegen and agent pipeline demonstration
+├── agent-loop/               Agent gate-runner demonstration
+└── legacy/                   Superseded experiments kept for reference
+
+docs/
+├── architecture/             Repository and frontend architecture decisions
+├── json_contract.md          Normative wire format
+├── component-model.md        Component responsibilities
+└── roadmap.md                Delivery plan
+```
+
+Root Gradle files, `gradle/`, and `.github/` are build and automation
+infrastructure rather than product modules.
+
+See [docs/architecture/repository-layout.md](docs/architecture/repository-layout.md)
+for ownership rules and dependency boundaries.
+
+## Gradle modules
+
+| Gradle path | Directory | Responsibility |
+|---|---|---|
+| `:apps:android:app` | `apps/android/app` | Activity, Compose UI, dependency wiring |
+| `:apps:android:data` | `apps/android/data` | Android repositories and data sources |
+| `:packages:design-contract` | `packages/design-contract` | Pure Kotlin contract model and validation |
+
+`design-contract` applies no Android plugin. Android or Web implementation
+details must not be added to it.
+
+## Current status
+
+| Area | State |
+|---|---|
+| JSON contract and Kotlin model | Implemented |
+| Android application | Hello World scaffold |
+| Web application | Static device-frame harness |
+| Android and Web editor UX | Interactive prototypes only |
+| Production codegen and agent integration | Not merged into `master` |
+
+The authority order is documented in [docs/README.md](docs/README.md). In
+short: the JSON contract wins over the component model, roadmap, and
+prototypes.
 
 ## Requirements
 
-| | |
-|---|---|
-| JDK | 21 — AGP 9.x does not support JDK 25+ |
-| Android SDK | API 37 installed |
-| Gradle | 9.6.1 via the wrapper — do not use a system `gradle` |
+- JDK 17; Gradle toolchains can provision it automatically
+- Android SDK with API 37 installed
+- Gradle 9.6.1 through the checked-in wrapper
 
-The JDK path is pinned in `gradle.properties` (`org.gradle.java.home`). The SDK
-path is read from `local.properties` (`sdk.dir`), which is git-ignored and must
-exist locally.
+The Android SDK path belongs in the git-ignored `local.properties` file:
 
-## Modules
-
-Dependencies point downward only. Nothing below reaches up.
-
-```text
-app  ──>  data  ──>  core
+```properties
+sdk.dir=/absolute/path/to/Android/sdk
 ```
 
-| Module | Plugin | Purpose |
-|---|---|---|
-| `app` | `com.android.application` | Activity, Compose UI, dependency wiring |
-| `data` | `com.android.library` | Repositories and data sources |
-| `core` | `org.jetbrains.kotlin.jvm` | Pure logic. No Android dependency |
-
-`core` applies no Android plugin, so `android.*` is not on its compile
-classpath — a layering violation is a build failure, not a review comment. Its
-tests run on the desktop JVM in well under a second.
-
-`data` exposes `core` with `api(project(":core"))`, so `app` sees both through
-one dependency.
-
-Feature modules get added alongside `app` when there are features. None exist
-yet, so none are declared.
-
-## Components
-
-### Build
-
-| File | Role |
-|---|---|
-| `settings.gradle.kts` | Declares the three modules and the repositories |
-| `build.gradle.kts` | Declares plugins for subprojects, applies none itself |
-| `gradle/libs.versions.toml` | Single source of versions for plugins and libraries |
-| `gradle.properties` | JDK pin, JVM args, AndroidX flag |
-| `app/build.gradle.kts` | `compileSdk 37`, `minSdk 26`, `targetSdk 36`, Compose on |
-| `data/build.gradle.kts` | Android library, `compileSdk 37`, `minSdk 26` |
-| `core/build.gradle.kts` | Kotlin/JVM targeting Java 17 bytecode |
-
-Kotlin sources live in `src/<set>/kotlin`, not the Android default
-`src/<set>/java`. Each Android module's `sourceSets` block sets that.
-
-### `core`
-
-| File | Role |
-|---|---|
-| `com/ikk/core/Greeting.kt` | `greeting(name): String` — pure, the one piece of real logic |
-| `com/ikk/core/GreetingTest.kt` | Unit test for it |
-
-### `data`
-
-| File | Role |
-|---|---|
-| `com/ikk/data/GreetingRepository.kt` | `GreetingRepository` interface and `DefaultGreetingRepository`, which delegates to `core` |
-| `com/ikk/data/GreetingRepositoryTest.kt` | Unit test for the delegation |
-
-The repository is a seam, not yet an abstraction that earns its keep. If no
-real data source ever lands here, fold it into `app`.
-
-### `app`
-
-| File | Role |
-|---|---|
-| `com/ikk/MainActivity.kt` | `ComponentActivity`, constructs the repository, sets the Compose content |
-| `com/ikk/ui/GreetingScreen.kt` | Stateless composable taking the message as a parameter, plus its `@Preview` |
-| `AndroidManifest.xml` | Declares `MainActivity` as the launcher activity |
-| `res/values/strings.xml` | `app_name` |
-| `res/values/themes.xml` | `Theme.IKK`, a platform theme — no appcompat dependency needed |
-
-`MainActivity` instantiates `DefaultGreetingRepository` directly. That is a
-`TODO`: swap for dependency injection once there is more than one dependency.
-
-### Other
-
-| Path | Role |
-|---|---|
-| `docs/` | Project documentation. Empty of substance so far |
-| `prototype/` | Standalone HTML UI prototypes. Not part of the Gradle build |
-
-## Build
+## Build and test
 
 ```sh
+./gradlew test
 ./gradlew assembleDebug
 ```
 
-## Test
+Focused commands:
 
 ```sh
-./gradlew :core:test                 # pure JVM, fastest
-./gradlew :data:testDebugUnitTest
-./gradlew test                       # every module
-./gradlew connectedDebugAndroidTest  # instrumented, needs a device/emulator
+./gradlew :packages:design-contract:test
+./gradlew :apps:android:data:testDebugUnitTest
+./gradlew :apps:android:app:assembleDebug
 ```
 
-`app` currently has no unit tests — its logic lives in the modules below it.
-
-Note that `connectedDebugAndroidTest` uninstalls the app when it finishes, so
-run `installDebug` again before launching by hand.
-
-## Run
-
-Open the project root in IntelliJ IDEA / Android Studio and let it import the
-Gradle build, then run the `app` configuration. From the command line:
+Run the Android app from Android Studio or with:
 
 ```sh
-./gradlew installDebug
+./gradlew :apps:android:app:installDebug
 adb shell am start -n com.ikk/.MainActivity
-adb logcat --pid=$(adb shell pidof -s com.ikk)
 ```
-
-## Known issues
-
-- `gradle.properties` pins an absolute JDK path from one machine. The build
-  will fail on any other checkout. Replace with a Gradle toolchain.
-- `compileSdk`, `minSdk` and the Java 17 settings are duplicated across `app`
-  and `data`. Move to a convention plugin under `build-logic/` if a third
-  Android module appears.

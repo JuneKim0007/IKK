@@ -71,23 +71,23 @@ except `core`. Phase 4 is a gate, not a task: it cannot start until both land.
 ## Phase 0 · Foundations
 
 > **Status:** 1, 3, 4, 8, 10 done · 2 deferred with reason · 5, 6, 7, 9 open
-> (they belong to whoever takes the `frontend/web` branch).
+> (they belong to whoever takes the `frontend/web` branch in `apps/web`).
 
 Everything that makes the later phases possible. No product value; skipping it
 costs more than doing it.
 
 - [x] **1.** Replace the absolute JDK path in `gradle.properties` with a Gradle
       toolchain so the repo builds on any machine
-- [~] **2.** ~~Promote `:core` to Kotlin Multiplatform~~ — **deferred, on purpose.**
+- [~] **2.** ~~Promote `:packages:design-contract` to Kotlin Multiplatform~~ — **deferred, on purpose.**
       KMP buys sharing with a *Kotlin* target. The web surface is TypeScript and
-      the backend is JVM, so a plain Kotlin/JVM `:core` already serves both
+      the backend is JVM, so a plain Kotlin/JVM contract module already serves both
       consumers; Android depends on it directly. Revisit only if a Kotlin/JS or
       Compose Multiplatform target appears. Doing it now is ceremony with no consumer
-- [x] **3.** Add `kotlinx.serialization` to `:core` with the JSON format pinned
+- [x] **3.** Add `kotlinx.serialization` to `:packages:design-contract` with the JSON format pinned
       (`encodeDefaults = true`, `explicitNulls = true`)
 - [x] **4.** Add `schemaVersion` constant and a migration hook that throws loudly
       on an unknown version
-- [ ] **5.** Create `frontend/web/` with a real build (bundler, TS, dev server)
+- [ ] **5.** Create `apps/web/` with a real build (bundler, TS, dev server)
 - [ ] **6.** Extract design tokens to one source consumed by both surfaces —
       colours, type scale, spacing, the 375×667 reference viewport
 - [ ] **7.** Pin Roboto as a self-hosted webfont so text metrics match Android
@@ -102,10 +102,10 @@ costs more than doing it.
 
 ## Phase 1 · Core model
 
-> **Status:** complete. `:core:test` — 23 tests green.
-> Lives in `core/src/main/kotlin/com/ikk/core/contract/`.
+> **Status:** complete. `:packages:design-contract:test` — 23 tests green.
+> Lives in `packages/design-contract/src/main/kotlin/com/ikk/core/contract/`.
 
-Pure Kotlin, no Android, no DOM. Lives in `core/src/commonMain`.
+Pure Kotlin, no Android, no DOM. Lives in `packages/design-contract/src/main`.
 
 - [x] **11.** `RelRect { x, y, w, h }` as fractions, with `translate`, `resize`,
       `contains`, `clampTo`
@@ -131,14 +131,14 @@ Pure Kotlin, no Android, no DOM. Lives in `core/src/commonMain`.
 - [x] **24.** `markDirty()` bumps `version` and stamps `updatedAt` on every setter
 - [x] **25.** `text = null` and `text = ""` are distinguishable after a round trip
 
-**Exit:** `:core:test` green; a hand-written contract JSON deserialises.
+**Exit:** `:packages:design-contract:test` green; a hand-written contract JSON deserialises.
 **Effort:** 2–3 days.
 
 ---
 
 ## Phase 2 · Web editor
 
-`frontend/web/`. Consumes `:core` types via generated TS definitions or a
+`apps/web/`. Mirrors `:packages:design-contract` types via generated TS definitions or a
 hand-kept mirror — decide in Phase 0 item 5.
 
 **Renderer**
@@ -177,7 +177,7 @@ hand-kept mirror — decide in Phase 0 item 5.
 
 ## Phase 3 · Android editor
 
-`app/` + a new `:feature-editor` module. Compose, touch-first.
+`apps/android/app/` + a new `:apps:android:feature-editor` module. Compose, touch-first.
 
 **Renderer**
 
@@ -236,7 +236,7 @@ A gate, not a feature. Nothing past here until it passes.
 
 ## Phase 5 · Backend
 
-Ktor, sharing `:core` so the wire types cannot drift.
+Ktor, sharing `:packages:design-contract` so the wire types cannot drift.
 
 - [ ] **76.** Project + screen persistence
 - [ ] **77.** `GET /projects/{id}/contract`
