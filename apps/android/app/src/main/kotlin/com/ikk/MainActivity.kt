@@ -3,25 +3,27 @@ package com.ikk
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
-import com.ikk.data.DefaultGreetingRepository
-import com.ikk.ui.GreetingScreen
+import com.ikk.ui.generated.HomeLayoutGenerated
 
+/**
+ * Renders the layout generated from the current contract.
+ *
+ * `HomeLayoutGenerated` is written by `packages/codegen` and refreshed by
+ * `make android-sync` — never edited here. See
+ * docs/architecture/frontend-android.md §5.
+ */
 class MainActivity : ComponentActivity() {
-
-    // TODO: replace with dependency injection once there is more than one
-    // dependency to wire.
-    private val repository = DefaultGreetingRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    GreetingScreen(message = repository.greetingFor("World"))
+                    HomeLayoutGenerated(modifier = Modifier.fillMaxSize())
                 }
             }
         }

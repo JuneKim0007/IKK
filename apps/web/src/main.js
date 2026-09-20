@@ -17,6 +17,8 @@ import { Keymap } from './core/keymap.js';
 
 const params = new URLSearchParams(location.search);
 const BACKEND = params.get('api') ?? 'http://127.0.0.1:8000';
+// ?project= targets a backend project; the default matches make e2e.
+const PROJECT = params.get('project') ?? 'demo';
 const FIXTURE = '../../docs/fixtures/valid/all_node_types.json';
 
 async function loadContract() {
@@ -30,6 +32,19 @@ async function loadContract() {
     if (res.ok) return { contract: await res.json(), persisted: false };
   } catch { /* falls through to an empty screen */ }
   return { contract: emptyContract(), persisted: false };
+}
+
+/**
+ * Say what went wrong, not what might have. "Is the backend running?" is only
+ * the right question when the request never reached one — for every other
+ * failure the server already answered, and repeating a guess over its answer
+ * makes a precise error useless.
+ */
+function describeFailure(action, error) {
+  if (error?.offline) return `${action} — could not reach the backend. Is it running?`;
+  const id = error?.requestId ? ` [${error.requestId}]` : '';
+  const code = error?.code ? ` (${error.code})` : '';
+  return `${action}: ${error?.message ?? 'unknown error'}${code}${id}`;
 }
 
 function warn(message, tone = 'error') {
@@ -47,7 +62,7 @@ async function boot() {
   if (!initial.persisted) {
     for (const node of store.nodes()) store.dirtyIds.add(node.id);
   }
-  const sync = new SyncClient(store, { baseUrl: BACKEND, projectId: 'demo' });
+  const sync = new SyncClient(store, { baseUrl: BACKEND, projectId: PROJECT });
 
   const root = document.getElementById('app');
   const layers = new LayersPanel(store, { onWarn: warn });
@@ -71,7 +86,7 @@ async function boot() {
         const out = await sync.generate();
         warn(`Generated at ${out.checkpoint}: ${out.artifacts.map((a) => a.name).join(', ')}`, 'success');
       } catch (e) {
-        warn(`Generate failed — is the backend running? (${e.message})`);
+        warn(describeFailure('Generate failed', e));
       }
     },
   });

@@ -1,8 +1,9 @@
 # IKK — one machine, two surfaces, one Kotlin backend.
 #
 #   make up        start backend + frontend
-#   make down      stop both
+#   make down      stop both, and any running emulator
 #   make test      every suite: Kotlin, Node codegen, Web, backend
+#   make demo      backend + frontend + a cold emulator, ready to present
 #
 # Ports: frontend 5173, backend 8000. Override with FRONTEND_PORT / BACKEND_PORT.
 
@@ -16,7 +17,8 @@ RUN           := .run
 .DEFAULT_GOAL := help
 .PHONY: help up down frontend backend stop-frontend stop-backend status logs \
         test test-kotlin test-codegen test-web test-backend e2e generate check clean \
-        docker-build docker-run
+        docker-build docker-run android-sync android-install \
+        emulator emulator-kill emulator-reset demo
 
 ## ---------------------------------------------------------------- help
 
@@ -81,7 +83,7 @@ backend: $(RUN) stop-backend
 
 ## ---------------------------------------------------------------- stop
 
-down: stop-frontend stop-backend
+down: stop-frontend stop-backend emulator-kill
 	@echo "stopped"
 
 # Wait until the port is actually free so the next start cannot race the old
@@ -159,6 +161,114 @@ generate:
 
 check:
 	@cd packages/codegen && npm run check
+
+## ---------------------------------------------------------------- emulator
+
+AVD      ?= hack36
+SDK      := $(HOME)/Library/Android/sdk
+EMULATOR := $(SDK)/emulator/emulator
+
+# Boot the AVD if nothing is attached. Idempotent: running it twice does not
+# start a second emulator, so `make demo` is safe to re-run mid-presentation.
+#
+# Cold boot (-no-snapshot-load) on purpose. A snapshot restores whatever the
+# last run left installed, which is exactly the stale-APK confusion the demo
+# must not hit.
+emulator:
+	@if $(ADB) get-state >/dev/null 2>&1; then \
+		echo "  emulator already running"; \
+	else \
+		$(EMULATOR) -list-avds | grep -qx "$(AVD)" \
+			|| { echo "  no AVD named '$(AVD)' — $(EMULATOR) -list-avds"; exit 1; }; \
+		echo "-> emulator $(AVD) (cold boot)"; \
+		nohup $(EMULATOR) -avd $(AVD) -no-snapshot-load -no-boot-anim \
+			> $(RUN)/emulator.log 2>&1 & \
+		$(ADB) wait-for-device; \
+		for i in $$(seq 1 120); do \
+			[ "$$($(ADB) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break; \
+			sleep 2; \
+		done; \
+		[ "$$($(ADB) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] \
+			&& echo "  booted" \
+			|| { echo "  FAILED to boot — see $(RUN)/emulator.log"; exit 1; }; \
+	fi
+
+# Kill every attached emulator and wait until adb really reports none. Without
+# the wait, the next `make emulator` sees a dying device and attaches to it.
+emulator-kill:
+	@if $(ADB) get-state >/dev/null 2>&1; then \
+		echo "-> stopping emulator"; \
+		for s in $$($(ADB) devices | awk '/^emulator-/ {print $$1}'); do \
+			$(ADB) -s $$s emu kill >/dev/null 2>&1 || true; \
+		done; \
+		for i in $$(seq 1 40); do \
+			$(ADB) get-state >/dev/null 2>&1 || break; \
+			sleep 0.5; \
+		done; \
+		$(ADB) get-state >/dev/null 2>&1 \
+			&& { echo "  still up — killing the process"; pkill -f "qemu-system.*$(AVD)" || true; } \
+			|| echo "  stopped"; \
+	fi
+
+# A guaranteed-clean device: no leftover APK, no leftover state.
+emulator-reset: emulator-kill
+	@echo "-> emulator $(AVD) (wipe-data cold boot)"
+	@nohup $(EMULATOR) -avd $(AVD) -no-snapshot-load -wipe-data -no-boot-anim \
+		> $(RUN)/emulator.log 2>&1 &
+	@$(ADB) wait-for-device
+	@for i in $$(seq 1 120); do \
+		[ "$$($(ADB) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && break; \
+		sleep 2; \
+	done
+	@echo "  wiped and booted"
+
+## ---------------------------------------------------------------- demo
+
+# Everything the pitch needs, in the order it is presented.
+demo: $(RUN) backend frontend emulator
+	@echo ""
+	@echo "  editor   $(EDITOR_URL)"
+	@echo "  then     make android-sync   (regenerate -> install -> relaunch)"
+	@echo ""
+
+## ---------------------------------------------------------------- android
+
+PROJECT     ?= demo
+ANDROID_GEN := apps/android/app/src/main/kotlin/com/ikk/ui/generated/HomeLayout.generated.kt
+ADB         := $(shell command -v adb 2>/dev/null || echo $$HOME/Library/Android/sdk/platform-tools/adb)
+
+# Contract -> generated Compose -> APK on the device.
+#
+# Deterministic end to end: the contract fully determines the Kotlin, so a
+# colour change is a regeneration, not a decision. Nothing in this path needs
+# a model. Run `make backend` and edit in the web editor first.
+android-sync: $(RUN)
+	@echo "-> generate"
+	@curl -sf -X POST http://127.0.0.1:$(BACKEND_PORT)/v1/projects/$(PROJECT)/generate \
+		-o $(RUN)/generate.json \
+		|| { echo "  backend unreachable on :$(BACKEND_PORT) - run 'make backend'"; exit 1; }
+	@mkdir -p $(dir $(ANDROID_GEN))
+# Download to a temp file and refuse an empty body: a failed fetch that
+# writes straight to the source file silently empties it, and the next
+# build fails somewhere unrelated.
+	@curl -sf http://127.0.0.1:$(BACKEND_PORT)/v1/projects/$(PROJECT)/artifacts/HomeLayout.generated.kt \
+		-o $(ANDROID_GEN).tmp \
+		|| { rm -f $(ANDROID_GEN).tmp; echo "  artifact fetch failed"; exit 1; }
+	@test -s $(ANDROID_GEN).tmp \
+		|| { rm -f $(ANDROID_GEN).tmp; echo "  empty artifact - refusing to overwrite"; exit 1; }
+	@mv $(ANDROID_GEN).tmp $(ANDROID_GEN)
+	@head -1 $(ANDROID_GEN) | sed 's|// GENERATED FROM |  |'
+	@$(MAKE) --no-print-directory android-install
+
+# Build and launch whatever is currently in $(ANDROID_GEN). Split out so the
+# offline path works too: `make generate && make android-install`.
+android-install:
+	@$(ADB) get-state >/dev/null 2>&1 \
+		|| { echo "  no device - start an emulator first"; exit 1; }
+	@./gradlew -q :apps:android:app:installDebug
+	@$(ADB) shell am force-stop com.ikk
+	@$(ADB) shell am start -n com.ikk/.MainActivity >/dev/null
+	@echo "  installed and launched"
 
 ## ---------------------------------------------------------------- docker
 

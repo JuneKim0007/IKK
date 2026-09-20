@@ -9,6 +9,57 @@
  * docs/api.md. If it is unavailable, the editor keeps working offline and the
  * dirty queue drains after a later edit.
  */
+/**
+ * An HTTP error the server explained. Carries the server's own words, because
+ * "generate failed: 404" tells a user nothing they can act on while
+ * "project_not_found" tells them exactly what happened.
+ */
+export class ApiError extends Error {
+  constructor({ status, code, message, requestId }) {
+    super(message || code || `request failed: ${status}`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code ?? null;
+    this.requestId = requestId ?? null;
+    /** True only when the request never reached a server. */
+    this.offline = false;
+  }
+}
+
+/** The request never got a response — the one case where "is it running?" is the right question. */
+export class OfflineError extends Error {
+  constructor(cause) {
+    super('could not reach the backend');
+    this.name = 'OfflineError';
+    this.offline = true;
+    this.cause = cause;
+  }
+}
+
+/**
+ * Every request goes through here so no call site invents its own error text.
+ * docs/api.md gives all non-2xx one shape: { error, message, requestId }.
+ */
+async function request(url, options = {}) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (cause) {
+    throw new OfflineError(cause);
+  }
+  if (res.ok) return res;
+
+  // The server said why. Throwing away its body and reporting the status code
+  // is how a precise answer becomes a shrug.
+  const body = await res.json().catch(() => ({}));
+  throw new ApiError({
+    status: res.status,
+    code: body.error,
+    message: body.message,
+    requestId: body.requestId,
+  });
+}
+
 export class SyncClient {
   /**
    * @param {import('./store.js').Store} store
@@ -124,13 +175,9 @@ export class SyncClient {
   async uploadAsset(file) {
     const body = new FormData();
     body.append('file', file);
-    const res = await fetch(`${this.baseUrl}/v1/projects/${this.projectId}/assets`, {
+    const res = await request(`${this.baseUrl}/v1/projects/${this.projectId}/assets`, {
       method: 'POST', body,
     });
-    if (!res.ok) {
-      const detail = await res.json().catch(() => ({}));
-      throw new Error(detail.message ?? `upload failed: ${res.status}`);
-    }
     return res.json();   // { ref, mime, bytes }
   }
 
@@ -141,8 +188,7 @@ export class SyncClient {
   async generate() {
     await this.flush();
     if (this.store.dirtyIds.size) throw new Error('sync is not clean');
-    const res = await fetch(`${this.baseUrl}/v1/projects/${this.projectId}/generate`, { method: 'POST' });
-    if (!res.ok) throw new Error(`generate failed: ${res.status}`);
+    const res = await request(`${this.baseUrl}/v1/projects/${this.projectId}/generate`, { method: 'POST' });
     const result = await res.json();
     this.store.contract.checkpoint = result.checkpoint;
     return result;

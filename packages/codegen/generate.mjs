@@ -698,13 +698,16 @@ export function generateKotlin(contract) {
     const modifierLines = kotlinModifierLines(node);
     modifierLines[modifierLines.length - 1] += ",";
     if (node.type === "image") {
+      // Positional, not named: `imageContent` is a parameter of function
+      // type, and Kotlin prohibits named arguments when invoking one
+      // (NAMED_ARGUMENTS_NOT_ALLOWED). Order matches the declared type
+      // emitted above: id, contentDescription, contentScale, modifier.
       lines.push(
         "        imageContent(",
-        `            id = ${kotlinString(node.id)},`,
-        `            contentDescription = ${node.alt === null ? "null" : kotlinString(node.alt)},`,
-        `            contentScale = ${kotlinContentScale(node.contentScale)},`,
-        "            modifier =",
-        ...indent(modifierLines, 16),
+        `            ${kotlinString(node.id)},`,
+        `            ${node.alt === null ? "null" : kotlinString(node.alt)},`,
+        `            ${kotlinContentScale(node.contentScale)},`,
+        ...indent(modifierLines, 12),
         "        )",
         "",
       );

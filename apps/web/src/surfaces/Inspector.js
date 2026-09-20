@@ -312,7 +312,11 @@ export class Inspector extends BaseElement {
       } catch (err) {
         // Offline is the common case here, and silently doing nothing would
         // read as a broken button.
-        this.onWarn?.(`Upload failed — is the backend running? (${err.message})`);
+        this.onWarn?.(err?.offline
+          ? 'Upload failed — could not reach the backend. Is it running?'
+          : `Upload failed: ${err?.message ?? 'unknown error'}` +
+            (err?.code ? ` (${err.code})` : '') +
+            (err?.requestId ? ` [${err.requestId}]` : ''));
         pick.disabled = false;
         pick.textContent = 'Choose image…';
       }
