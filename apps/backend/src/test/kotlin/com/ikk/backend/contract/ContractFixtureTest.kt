@@ -59,6 +59,14 @@ class ContractFixtureTest {
         assertEquals(ContractJson.encode(contract), BackendContract.encode(contract))
     }
 
+    @Test
+    fun `codegen example passes the backend boundary`() {
+        val path = root.resolve("packages/codegen/examples/home.json")
+        val violations = BackendContract.validate(path.readText())
+        assertEquals(emptyList(), violations)
+        BackendContract.decode(path.readText())
+    }
+
     private fun fixtures(kind: String): List<Path> =
         Files.list(root.resolve("docs/fixtures/$kind")).use { paths ->
             paths.filter { it.toString().endsWith(".json") }.sorted().toList()

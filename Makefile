@@ -137,19 +137,22 @@ test-backend:
 
 # Integrated: the contract goes in over HTTP and real artifacts come back.
 # This is the only target that proves the two halves agree at runtime.
+e2e: export IKK_DATABASE_URL := jdbc:h2:mem:ikk_e2e;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
 e2e: up
-	@echo "→ e2e"
-	@curl -sf -X PUT http://127.0.0.1:$(BACKEND_PORT)/v1/projects/demo/contract \
+	@trap '$(MAKE) --no-print-directory down >/dev/null' EXIT; \
+	echo "→ e2e"; \
+	status=$$(curl -sS -o $(RUN)/e2e-put.json -w '%{http_code}' \
+		-X PUT http://127.0.0.1:$(BACKEND_PORT)/v1/projects/demo/contract \
 		-H 'content-type: application/json' \
-		--data-binary @packages/codegen/examples/home.json > /dev/null \
-		|| { echo "  PUT failed"; exit 1; }
-	@curl -sf -X POST http://127.0.0.1:$(BACKEND_PORT)/v1/projects/demo/generate \
+		--data-binary @packages/codegen/examples/home.json); \
+	[ "$$status" = 200 ] \
+		|| { echo "  PUT failed ($$status)"; cat $(RUN)/e2e-put.json; exit 1; }; \
+	curl -sf -X POST http://127.0.0.1:$(BACKEND_PORT)/v1/projects/demo/generate \
 		| python3 -c "import json,sys; d=json.load(sys.stdin); \
 			names=[a['name'] for a in d['artifacts']]; \
 			assert any(n.endswith('.kt') for n in names), names; \
 			assert any(n.endswith('.css') for n in names), names; \
 			print('  ok', d['checkpoint'], '->', ', '.join(names))"
-	@$(MAKE) --no-print-directory down
 
 generate:
 	@cd packages/codegen && npm run generate
