@@ -109,7 +109,7 @@ Every component, whatever its type, has this shape:
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | `id` | string | ✔ | — | 1–64 characters. Stable, never reused, never shown |
-| `type` | enum | ✔ | — | `rect` · `ellipse` · `text` · `image` |
+| `type` | enum | ✔ | — | `rect` · `ellipse` · `triangle` · `line` · `text` · `image` |
 | `name` | string | ✔ | — | Designer-facing. Unique within scope. §4.1 |
 | `z` | int | ✔ | — | Paint order, ascending. Ties broken by `id` |
 | `visible` | bool | ✔ | `true` | Hidden nodes stay in the contract and are **not** emitted |
@@ -369,15 +369,51 @@ than discovering it in a demo.
 
 ## 10 · Per-type field applicability
 
-| Field | rect | ellipse | text | image |
-|---|---|---|---|---|
-| `rect` | ✔ | ✔ | ✔ | ✔ |
-| `fill` | ✔ | ✔ | null | placeholder colour |
-| `stroke` | ✔ | ✔ | null | ✔ |
-| `radius` | number | `"50%"` | `0` | number |
-| `text` | optional | optional | **required** | null |
-| `source` | — | — | — | nullable — `null` is an unfilled frame |
-| `contentScale` | — | — | — | **required** |
+| Field | rect | ellipse | triangle | line | text | image |
+|---|---|---|---|---|---|---|
+| `rect` | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `fill` | ✔ | ✔ | ✔ | null | null | placeholder colour |
+| `stroke` | ✔ | ✔ | see below | **required** | null | ✔ |
+| `radius` | number | `"50%"` | `0` | `0` | `0` | number |
+| `text` | optional | optional | optional | null | **required** | null |
+| `line` | — | — | — | `orientation` | — | — |
+| `source` | — | — | — | — | — | nullable — `null` is an unfilled frame |
+| `contentScale` | — | — | — | — | — | **required** |
+
+### Triangle
+
+An isosceles triangle filling the node's box: apex at the top centre, base on
+the bottom edge. It carries no radius.
+
+| Target | Mapping |
+|---|---|
+| CSS | `clip-path: polygon(50% 0%, 100% 100%, 0% 100%)` |
+| Compose | a `GenericShape` with the same three points |
+
+**Stroke on a triangle is not the same primitive.** CSS `clip-path` clips the
+border away, so a bordered triangle renders with no visible outline, while
+Compose's `.border(shape)` follows the path. Rather than let the two surfaces
+disagree, v1 declares `stroke` **must be `null`** on a triangle (rule V23).
+Outlined triangles need a drawn path on both sides and are deferred.
+
+### Line
+
+A straight stroke across the node's box, corner to corner. It has no fill, no
+text, and no radius — it is drawn, not painted. `stroke` is **required**;
+there is nothing to render without one (rule V24).
+
+```json
+"line": { "orientation": "topLeftToBottomRight" }
+```
+
+`orientation` is `topLeftToBottomRight` · `bottomLeftToTopRight` — which
+diagonal of the box the line runs along. Arbitrary angles are deferred; see
+`docs/roadmap-frontend.md` F1.23.
+
+| Target | Mapping |
+|---|---|
+| CSS | `background: linear-gradient(...)` — a hard-edged diagonal band the width of `stroke.width`, not an SVG element. Keeps the line on the same box model as every other node, so selection, nudge and resize need no special case |
+| Compose | `Canvas { drawLine(...) }` along the same diagonal |
 
 A `type: "image"` node adds:
 
@@ -437,7 +473,7 @@ A contract is valid when all hold. Reject, do not repair.
 | # | Rule |
 |---|---|
 | V1 | `schemaVersion == 1` |
-| V2 | Every map key matches `^(rect\|ellipse\|text\|image)_[A-Za-z0-9]+$` |
+| V2 | Every map key matches `^(rect\|ellipse\|triangle\|line\|text\|image)_[A-Za-z0-9]+$` |
 | V3 | Every `id` is unique within the document |
 | V4 | `opacity` ∈ [0.0, 1.0] |
 | V5 | `rect.w > 0` and `rect.h > 0` |
@@ -458,6 +494,8 @@ A contract is valid when all hold. Reject, do not repair.
 | V20 | Every `id` contains 1–64 characters |
 | V21 | `screen` starts with an uppercase ASCII letter, then contains at most 199 ASCII letters or digits |
 | V22 | Every component map key contains at most 240 characters |
+| V23 | `type == "triangle"` ⟹ `stroke` is `null` and `radius` is `0` |
+| V24 | `type == "line"` ⟹ `fill` is `null` and `stroke` is non-null with `stroke.width > 0` |
 
 V11 is the one people want to relax. Do not. A field one implementation writes
 and another silently drops is a divergence that only shows up at a demo.
@@ -618,3 +656,4 @@ bug.
 | Version | Change |
 |---|---|
 | 1 | Initial. rect, ellipse, text, image; relative geometry; per-node sync |
+| 1 | `triangle` (V23) and `line` (V24) added to the node-type enum. Still `schemaVersion 1` — this row exists because those two types shipped in Kotlin, JS and `docs/fixtures/` before this document was updated to match; the code was never wrong, this file was |

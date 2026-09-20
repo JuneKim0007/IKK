@@ -64,7 +64,7 @@ class BackendIntegrationTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.checkpoint").value("cp_005"))
-            .andExpect(jsonPath("$.components").value(4))
+            .andExpect(jsonPath("$.components").value(6))
 
         mockMvc.perform(get("/v1/projects/{projectId}/contract", projectId))
             .andExpect(status().isOk)
@@ -106,12 +106,12 @@ class BackendIntegrationTest {
             .andExpect(jsonPath("$.error").value("stale_version"))
 
         val collidingPayload = payload.deepCopy().apply {
-            put("id", "n5")
+            put("id", "n7")
             put("version", 1)
         }
         val collidingNode = json.createObjectNode().apply {
             putArray("nodes").addObject().apply {
-                put("id", "n5")
+                put("id", "n7")
                 put("type", "rect")
                 put("schemaVersion", 1)
                 put("version", 1)

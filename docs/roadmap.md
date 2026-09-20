@@ -25,5 +25,5 @@ repo stops being trustworthy, and git already keeps the history.
 | Codegen | `packages/codegen`, emits `.kt`, `.css`, and `.html` |
 | Fixture corpus | 3 valid, 19 invalid; Kotlin/backend boundaries enforce it |
 | Backend | Kotlin/Spring Boot; Python reference removed |
-| Web editor | in progress — `apps/web` |
-| Android editor | not started |
+| Web editor | editor prototype supports drag-to-draw, text/image editing, triangle, and line |
+| Android editor | contract wiring complete; editor UI still pending |

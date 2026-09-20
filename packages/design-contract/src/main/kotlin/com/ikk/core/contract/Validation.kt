@@ -14,7 +14,7 @@ data class Violation(val rule: String, val where: String, val message: String) {
 
 object ContractValidator {
 
-    private val KEY_PATTERN = Regex("^(rect|ellipse|text|image)_[A-Za-z0-9]+$")
+    private val KEY_PATTERN = Regex("^(rect|ellipse|triangle|line|text|image)_[A-Za-z0-9]+$")
 
     fun validate(contract: Contract): ValidationResult {
         val v = mutableListOf<Violation>()
@@ -82,6 +82,12 @@ object ContractValidator {
                         "fontFamily must be Roboto and lineHeight/maxLines must be positive when set",
                     )
                 }
+            }
+            if (node is TriangleNode && (node.stroke != null || node.radius != Radius.ZERO)) {
+                v += Violation("V23", key, "a triangle carries no stroke or radius")
+            }
+            if (node is LineNode && (node.fill != null || node.stroke.width <= 0)) {
+                v += Violation("V24", key, "a line has no fill and requires a positive stroke width")
             }
             if (node is EllipseNode && node.radius !is Radius.Full) {
                 v += Violation("V10", key, "an ellipse must have radius \"50%\"")

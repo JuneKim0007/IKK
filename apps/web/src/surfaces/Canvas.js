@@ -10,6 +10,8 @@ export class Canvas extends BaseElement {
     super('canvas', { store });
     this.elements = new Map();   // node id -> NodeElement
     this.drag = null;
+    /** Node currently being typed into, if any. @type {string|null} */
+    this.editingId = null;
   }
 
   createElement() {
@@ -35,6 +37,8 @@ export class Canvas extends BaseElement {
       }
       el.render(node);
       el.el.classList.toggle('is-selected', node.id === store.selectedId);
+      el.el.classList.toggle('is-editing', node.id === this.editingId);
+      if (node.id === this.editingId) this._attachEditor(store, node, el);
     }
 
     // Drop elements whose nodes are gone. Without this, a delete leaves a
@@ -46,8 +50,54 @@ export class Canvas extends BaseElement {
     this._renderHandles(store);
   }
 
+  /**
+   * Turns the node's text span into a caret. Editing in place rather than in a
+   * side panel is the difference between a design tool and a form, and it is
+   * also why the keymap has to go quiet: this span is contenteditable, so a
+   * bare "r" here must type an r, not select the rectangle tool.
+   */
+  _attachEditor(store, node, el) {
+    const span = el.el.querySelector('.node-text');
+    if (!span || span.dataset.editing === '1') return;
+
+    span.dataset.editing = '1';
+    span.contentEditable = 'plaintext-only';
+    span.spellcheck = false;
+    span.focus();
+
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    span.addEventListener('input', () => {
+      store.update(node.id, (n) => { n.text = { ...n.text, value: span.textContent }; });
+    });
+    span.addEventListener('blur', () => this.stopEditing(store), { once: true });
+  }
+
+  startEditing(store, id) {
+    this.editingId = id;
+    store.select(id);   // triggers a paint, which attaches the editor
+  }
+
+  stopEditing(store) {
+    if (!this.editingId) return;
+    const el = this.elements.get(this.editingId);
+    const span = el?.el?.querySelector('.node-text');
+    if (span) {
+      span.removeAttribute('contenteditable');
+      delete span.dataset.editing;
+    }
+    this.editingId = null;
+    store._emit();
+  }
+
   _renderHandles(store) {
     this.frame.querySelectorAll('.handle').forEach((h) => h.remove());
+    // Handles over a caret are noise, and dragging one mid-sentence is worse.
+    if (this.editingId) return;
     const el = store.selectedId ? this.elements.get(store.selectedId) : null;
     if (!el?.el) return;
     for (const dir of HANDLES) {
@@ -61,6 +111,10 @@ export class Canvas extends BaseElement {
   _bindPointer() {
     this.frame.addEventListener('pointerdown', (e) => {
       const store = this.store;
+      // A click inside the caret is a caret move, not the start of a drag.
+      if (this.editingId && e.target.closest('.node-text[contenteditable]')) return;
+      if (this.editingId) this.stopEditing(store);
+
       const handle = e.target.closest('.handle');
       const nodeEl = e.target.closest('.node');
 
@@ -117,8 +171,17 @@ export class Canvas extends BaseElement {
       if (!nodeEl) return;
       const id = nodeEl.dataset.elementId;
       const node = this.store.byId(id);
-      if (!node || node.type === 'image') return;
-      this.dispatchEditText?.(id);
+      if (!node) return;
+
+      const cap = this.capabilities?.(node.type);
+      if (cap && !cap.text) return;
+
+      // Double-clicking a shape with no text gives it one: "add a label"
+      // should feel like typing on the thing, not filling in a side panel.
+      if (node.text == null) {
+        this.store.update(id, (n) => { n.text = this.newText(); });
+      }
+      this.startEditing(this.store, id);
     });
   }
 }

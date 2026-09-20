@@ -116,6 +116,54 @@
       "alt": "cover",
       "version": 1,
       "updatedAt": "2026-09-20T14:25:02Z"
+    },
+    "triangle_marker": {
+      "id": "n5",
+      "type": "triangle",
+      "name": "Marker",
+      "z": 4,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": {
+        "x": 20.0,
+        "y": 45.0,
+        "w": 50.0,
+        "h": 25.0,
+        "unit": "%"
+      },
+      "fill": "#B4772A",
+      "stroke": null,
+      "radius": 0,
+      "text": null,
+      "version": 1,
+      "updatedAt": "2026-09-20T14:22:31Z"
+    },
+    "line_divider": {
+      "id": "n6",
+      "type": "line",
+      "name": "Divider",
+      "z": 5,
+      "visible": true,
+      "opacity": 1.0,
+      "rect": {
+        "x": 12.0,
+        "y": 78.0,
+        "w": 76.0,
+        "h": 4.0,
+        "unit": "%"
+      },
+      "fill": null,
+      "stroke": {
+        "color": "#5E6462",
+        "width": 2
+      },
+      "radius": 0,
+      "text": null,
+      "line": {
+        "orientation": "topLeftToBottomRight"
+      },
+      "version": 1,
+      "updatedAt": "2026-09-20T14:22:31Z"
     }
   }
 }

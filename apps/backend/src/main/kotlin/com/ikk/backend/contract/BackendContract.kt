@@ -61,7 +61,7 @@ object BackendContract {
             ?.content
             ?.takeIf { it.isNotBlank() }
             ?: throw IllegalArgumentException("node payload has no non-blank name")
-        require(type in setOf("rect", "ellipse", "text", "image")) {
+        require(type in setOf("rect", "ellipse", "triangle", "line", "text", "image")) {
             "unsupported node type \"$type\""
         }
         return "${type}_${DesignNode.slug(name)}"

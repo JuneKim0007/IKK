@@ -10,10 +10,24 @@ export const SCHEMA_VERSION = 1;
 export const REFERENCE = { w: 375, h: 667, unit: 'dp' };
 export const LINE_HEIGHT_RATIO = 1.3;
 
-export const PALETTE = [
-  '#65558F', '#4C6FBF', '#2E8B74', '#B4772A',
-  '#C0504D', '#5E6462', '#E8E3F0', '#FFFFFF',
-];
+/**
+ * The default palette. One list, used by fill, stroke and text colour alike.
+ *
+ * Three separate colour lists is how a tool ends up where you can stroke a
+ * shape in a green your text can never be. The rows are a neutral ramp and a
+ * hue set, in that order, because a designer reaches for a neutral far more
+ * often than a hue and the ramp should be where the eye lands first.
+ *
+ * Every value is uppercase, because json_contract.md §6 normalises to
+ * uppercase and two spellings of one colour checksum differently.
+ */
+export const PALETTE = {
+  neutral: ['#000000', '#1B1D1C', '#5E6462', '#9BA19E', '#D6D9D7', '#FFFFFF'],
+  hue:     ['#65558F', '#4C6FBF', '#2E8B74', '#B4772A', '#C0504D', '#8E4DA8'],
+};
+
+/** Flat form, for code that just needs "is this one of ours". */
+export const PALETTE_COLORS = [...PALETTE.neutral, ...PALETTE.hue];
 
 const COLOR = /^#[0-9A-F]{6}([0-9A-F]{2})?$/;
 
@@ -59,12 +73,46 @@ export function newId() {
 const DEFAULTS = {
   rect:    { fill: '#E8E3F0', stroke: { color: '#B5AFBC', width: 1 }, radius: 8,  w: 160, h: 56 },
   ellipse: { fill: '#E8E3F0', stroke: { color: '#B5AFBC', width: 1 }, radius: '50%', w: 96, h: 96 },
+  triangle: { fill: '#E8E3F0', stroke: null, radius: 0, w: 104, h: 92 },
+  line: { fill: null, stroke: { color: '#1B1D1C', width: 2 }, radius: 0, w: 140, h: 80 },
   text:    { fill: null, stroke: null, radius: 0, w: 180, h: 28 },
   image:   { fill: '#DFDAE6', stroke: null, radius: 8, w: 180, h: 101 },
 };
 
-/** Creates a spec-valid node. Name must be supplied by the caller (Store.nextName). */
-export function createNode(type, name, x, y, z) {
+export const DRAWABLE_TYPES = ['rect', 'ellipse', 'triangle', 'line', 'text', 'image'];
+
+/**
+ * Which controls a type actually has. The contract envelope is uniform — every
+ * node carries every field — so the editor cannot infer this from the data and
+ * asks here instead. One table, so the two surfaces cannot disagree about
+ * whether a triangle has a radius control.
+ *
+ * docs/component-model.md §5 explains why each cell is what it is.
+ */
+export const CAPABILITIES = {
+  rect:     { fill: true,  stroke: true,  strokeRequired: false, radius: true,  text: true  },
+  ellipse:  { fill: true,  stroke: true,  strokeRequired: false, radius: false, text: true  },
+  triangle: { fill: true,  stroke: false, strokeRequired: false, radius: false, text: true  },
+  line:     { fill: false, stroke: true,  strokeRequired: true,  radius: false, text: false },
+  text:     { fill: false, stroke: false, strokeRequired: false, radius: false, text: true  },
+  image:    { fill: false, stroke: true,  strokeRequired: false, radius: true,  text: false },
+};
+
+export function capabilities(type) {
+  return CAPABILITIES[type] ?? CAPABILITIES.rect;
+}
+
+/**
+ * Creates a spec-valid node.
+ * @param {string} type
+ * @param {string} name  from Store.nextName, so defaults never collide
+ * @param {number} x     dp at the reference viewport
+ * @param {number} y     dp at the reference viewport
+ * @param {number} z
+ * @param {object} [drawnRect] percentages from DrawController; when absent the
+ *                             type's default size is used at (x, y)
+ */
+export function createNode(type, name, x, y, z, drawnRect) {
   const d = DEFAULTS[type];
   const node = {
     id: newId(),
@@ -73,8 +121,8 @@ export function createNode(type, name, x, y, z) {
     z,
     visible: true,
     opacity: 1,
-    rect: rel((x / REFERENCE.w) * 100, (y / REFERENCE.h) * 100,
-              (d.w / REFERENCE.w) * 100, (d.h / REFERENCE.h) * 100),
+    rect: drawnRect ?? rel((x / REFERENCE.w) * 100, (y / REFERENCE.h) * 100,
+                           (d.w / REFERENCE.w) * 100, (d.h / REFERENCE.h) * 100),
     fill: d.fill,
     stroke: d.stroke,
     radius: d.radius,
@@ -86,6 +134,11 @@ export function createNode(type, name, x, y, z) {
     node.source = null;          // a frame can exist before a file is chosen
     node.contentScale = 'crop';
     node.alt = name;
+  }
+  if (type === 'line') {
+    // The bounding box plus which diagonal it runs along. Keeping the box
+    // means selection, nudge and resize need no special case for lines.
+    node.line = { orientation: 'topLeftToBottomRight' };
   }
   return node;
 }
@@ -107,6 +160,14 @@ export function validate(contract) {
     if (n.rect.w <= 0 || n.rect.h <= 0) out.push({ rule: 'V5', where: key, message: 'non-positive size' });
     if (n.type === 'text' && !n.text) out.push({ rule: 'V7', where: key, message: 'text node without text' });
     if (n.type === 'ellipse' && n.radius !== '50%') out.push({ rule: 'V10', where: key, message: 'ellipse radius' });
+    if (n.type === 'triangle' && (n.stroke || n.radius !== 0)) {
+      out.push({ rule: 'V23', where: key, message: 'a triangle carries no stroke or radius' });
+    }
+    if (n.type === 'line') {
+      if (!n.stroke || n.stroke.width <= 0) out.push({ rule: 'V24', where: key, message: 'a line needs a positive stroke width' });
+      if (n.fill) out.push({ rule: 'V24', where: key, message: 'a line has no fill' });
+      if (!n.line?.orientation) out.push({ rule: 'V24', where: key, message: 'a line needs an orientation' });
+    }
     if (!n.name?.trim()) out.push({ rule: 'V13', where: key, message: 'blank name' });
     const folded = n.name?.trim().toLowerCase();
     if (seenNames.has(folded)) out.push({ rule: 'V14', where: key, message: `duplicate name "${n.name}"` });

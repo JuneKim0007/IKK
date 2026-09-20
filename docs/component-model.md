@@ -214,6 +214,94 @@ second emitter to keep byte-identical.
 
 ---
 
+## 4.5 Property matrix — what each type actually has
+
+The envelope is uniform: every node serialises every field. That is a wire
+decision, and it is right — a field one implementation omits is a field the
+next one cannot read. But it means the **data cannot tell the editor which
+controls to show**, so a table does.
+
+| Property | rect | ellipse | triangle | line | text | image |
+|---|---|---|---|---|---|---|
+| `rect`, `z`, `visible`, `opacity` | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `fill` | ✔ | ✔ | ✔ | **✖** | ✖ | placeholder |
+| `stroke` (colour + thickness) | ✔ | ✔ | **✖** | **required** | ✖ | ✔ |
+| `radius` | ✔ | fixed `"50%"` | ✖ | ✖ | ✖ | ✔ |
+| `text` | optional | optional | optional | ✖ | **required** | ✖ |
+| `source`, `contentScale` | — | — | — | — | — | ✔ |
+| `line.orientation` | — | — | — | ✔ | — | — |
+
+### What the matrix says
+
+**Shapes and lines are nearly the same object.** Both are a box, a stroke and
+an opacity. The only real difference is which of `fill` and `stroke` is
+optional: a rectangle with no stroke is a filled block, a line with no stroke
+is *nothing*. So `strokeRequired` is a capability, not a validation afterthought.
+
+**A text box is a shape whose fill happens to be off.** It is not a separate
+family. The reason it is still its own type is that `text` is required on it
+and optional everywhere else — and that one difference is what lets the editor
+say "add text to this shape" for a rectangle and never for a text box.
+
+**Text is a capability, not a type.** A rectangle carrying a label and a text
+box are the same renderer with different fills. This is the single most
+load-bearing decision in the model, and it is why `text` sits on the base
+rather than on a subclass.
+
+**Images are the odd one out and should stay that way.** Size and opacity
+matter; thickness does not paint anything useful on a photo, and a radius only
+means "clip the corners". They carry a source, which nothing else does, and
+that source is the only field in the contract that refers to bytes the
+contract does not contain. Keep image special rather than generalising a
+`source` onto everything.
+
+### One palette, not three
+
+Fill, stroke and text colour all read `PALETTE` in
+`apps/web/src/contract/schema.js`. Three separate lists is how a tool ends up
+where you can stroke a shape in a green your text can never be — the
+inconsistency is invisible until someone tries to match them.
+
+It is two rows: a neutral ramp (black → white) and a hue set, in that order,
+because a designer reaches for a neutral far more often than a hue. A custom
+picker sits under both, because a colour off the palette is still legal in the
+contract and so must be reachable and must show as selected when in use.
+
+All values are uppercase: `json_contract.md` §6 normalises to uppercase, and
+two spellings of one colour checksum differently.
+
+### The base class does not grow. The predicate table does.
+
+The temptation is a `ShapeNode` superclass for rect/ellipse/triangle/line. It
+would buy nothing: the fields already live on the base because the envelope is
+uniform, so the subclass would hold only behaviour that is already identical.
+What varies is *which controls apply*, and that is data:
+
+```
+CAPABILITIES = {
+  rect:     { fill: ✔, stroke: ✔, strokeRequired: ✖, radius: ✔, text: ✔ },
+  ellipse:  { fill: ✔, stroke: ✔, strokeRequired: ✖, radius: ✖, text: ✔ },
+  triangle: { fill: ✔, stroke: ✖, strokeRequired: ✖, radius: ✖, text: ✔ },
+  line:     { fill: ✖, stroke: ✔, strokeRequired: ✔, radius: ✖, text: ✖ },
+  text:     { fill: ✖, stroke: ✖, strokeRequired: ✖, radius: ✖, text: ✔ },
+  image:    { fill: ✖, stroke: ✔, strokeRequired: ✖, radius: ✔, text: ✖ },
+}
+```
+
+The inspector renders from this table, so adding a type is one row plus one
+renderer — not a new branch in five places. `apps/web/src/contract/schema.js`
+holds it; `DesignNode`'s `acceptsText` / `acceptsFill` / `radiusEditable`
+predicates are the Kotlin half of the same idea.
+
+### Why triangle has no stroke
+
+CSS `clip-path` clips the border away, so a bordered triangle shows nothing;
+Compose's `.border(shape)` follows the path and shows an outline. Rather than
+ship two surfaces that disagree, rule **V23** forbids it. Outlined triangles
+need a drawn path on both sides, and that is a feature, not a bug fix.
+
+---
+
 ## 5. Per-component analysis
 
 The column that matters is **Divergence risk** — where the two renderers can

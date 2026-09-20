@@ -23,39 +23,36 @@ answers to the same question is how a repo stops being trustworthy.
 
 ## F1 · Web editor — `apps/web`
 
+Shipped: canvas, drag-to-draw for every type, in-place text editing,
+image upload, rect/ellipse/triangle/line/text/
+image renderers, selection with 8 handles, move, resize, nudge, layers with
+rename and V14 enforcement, capability-driven inspector, status bar with live
+validation. Those items are deleted from this list, not ticked.
+
 Vanilla ES modules, no bundler. Every element extends `BaseElement`, and
 `markDirty()` is the only mutation path — if a field can change without it,
 sync silently loses the edit.
 
 **Renderer**
 
-- [ ] **F1.1** Canvas surface at the reference viewport, zoom, pan
-- [ ] **F1.2** `RectElement` — fill, stroke inside, radius, opacity
-- [ ] **F1.3** `EllipseElement` — `border-radius: 50%`
-- [ ] **F1.4** `TextElement` — explicit line-height, `pre-wrap`
-- [ ] **F1.5** `ImageElement` — `object-fit`, clipped corners, null source is a frame
-- [ ] **F1.6** Text-on-shape for any element whose node carries `text`
-- [ ] **F1.7** Selection outline + 8 resize handles
 
 **Interaction**
 
-- [ ] **F1.8** Click to select, click-empty to deselect
-- [ ] **F1.9** Drag to move
-- [ ] **F1.10** Drag handles to resize, all 8 directions
-- [ ] **F1.11** Draw-by-drag creation per tool
-- [ ] **F1.12** Double-click to edit text in place
-- [ ] **F1.13** Arrow-key nudge, shift = 10
-- [ ] **F1.14** Delete and undo — command stack, not JSON snapshots
+- [ ] **F1.14** Undo is currently a contract snapshot stack. Replace with a
+      command stack: snapshots do not bump per-node `version`, so an undo that
+      restores a node the server already has looks like no change at all
+- [ ] **F1.21** Zoom and pan on the canvas
+- [ ] **F1.24** Keyboard shortcut reference in the UI. The keymap is central
+      now (`core/keymap.js`) but nothing tells a new user that `R` exists
+- [ ] **F1.22** Outlined triangles — needs a drawn path on both surfaces,
+      because `clip-path` clips a CSS border away while Compose's `.border`
+      follows the shape (rule V23 forbids the half-working version)
+- [ ] **F1.23** Arbitrary-angle lines. A line is currently its bounding box
+      plus which diagonal it runs along, which keeps every other behaviour
+      unchanged but caps the angles available
 
 **Chrome**
 
-- [ ] **F1.15** Toolbar with the grouped shape tool (rect + ellipse, remembers last)
-- [ ] **F1.16** Inspector: position, size, fill, stroke, radius, opacity
-- [ ] **F1.17** Inspector: text section only when `text != null`; "Add text" when null
-- [ ] **F1.18** Layers panel: select, rename, visibility, reorder
-- [ ] **F1.19** Name collision rejected with the standard warning, per
-      `json_contract.md` §4.1 — never a silent suffix
-- [ ] **F1.20** Status bar: frame size, zoom, selection
 
 ---
 

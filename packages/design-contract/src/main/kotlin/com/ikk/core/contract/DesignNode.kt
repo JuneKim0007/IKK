@@ -131,6 +131,77 @@ data class EllipseNode(
 }
 
 @Serializable
+@SerialName("triangle")
+data class TriangleNode(
+    override val id: String,
+    override val name: String,
+    override val z: Int,
+    override val visible: Boolean = true,
+    override val opacity: Double = 1.0,
+    override val rect: RelRect,
+    override val fill: Color? = null,
+    override val stroke: Stroke? = null,
+    override val radius: Radius = Radius.ZERO,
+    override val text: TextPayload? = null,
+    override val version: Int = 1,
+    @Contextual override val updatedAt: Instant,
+) : DesignNode() {
+    init {
+        requireCommonInvariants()
+        // V23. CSS clip-path clips the border away while Compose's .border()
+        // follows the path, so a stroked triangle would render differently on
+        // the two surfaces. Outlined triangles need a drawn path on both.
+        require(stroke == null) { "a triangle carries no stroke (V23)" }
+        require(radius == Radius.ZERO) { "a triangle carries no radius (V23)" }
+    }
+
+    override val key: String get() = keyFor("triangle")
+    override val acceptsText get() = true
+    override val acceptsFill get() = true
+    override val radiusEditable get() = false
+    override fun touch(now: Instant) = copy(version = version + 1, updatedAt = now)
+    override fun withRect(rect: RelRect, now: Instant) = copy(rect = rect).touch(now)
+    override fun withText(text: TextPayload?, now: Instant) = copy(text = text).touch(now)
+}
+
+@Serializable
+@SerialName("line")
+data class LineNode(
+    override val id: String,
+    override val name: String,
+    override val z: Int,
+    override val visible: Boolean = true,
+    override val opacity: Double = 1.0,
+    override val rect: RelRect,
+    override val stroke: Stroke,
+    val line: LineSpec = LineSpec(),
+    override val fill: Color? = null,
+    override val radius: Radius = Radius.ZERO,
+    override val text: TextPayload? = null,
+    override val version: Int = 1,
+    @Contextual override val updatedAt: Instant,
+) : DesignNode() {
+    init {
+        requireCommonInvariants()
+        // V24. A line is a stroke: without one there is nothing to draw, and a
+        // fill would be painting a box the line only uses as a bounding box.
+        require(fill == null) { "a line has no fill (V24)" }
+        require(stroke.width > 0) { "a line needs a positive stroke width (V24)" }
+    }
+
+    override val key: String get() = keyFor("line")
+    override val acceptsText get() = false
+    override val acceptsFill get() = false
+    override val radiusEditable get() = false
+    override fun touch(now: Instant) = copy(version = version + 1, updatedAt = now)
+    override fun withRect(rect: RelRect, now: Instant) = copy(rect = rect).touch(now)
+    override fun withText(text: TextPayload?, now: Instant): DesignNode {
+        require(text == null) { "a line cannot carry text" }
+        return this
+    }
+}
+
+@Serializable
 @SerialName("text")
 data class TextNode(
     override val id: String,

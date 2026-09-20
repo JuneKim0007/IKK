@@ -96,6 +96,28 @@ export class SyncClient {
     }
   }
 
+  /**
+   * docs/api.md — store an image and return the ref the contract carries.
+   *
+   * The bytes go to the server, not into the contract. A data URL would put
+   * base64 of every image into every sync payload and every generated file.
+   */
+  async uploadAsset(file) {
+    const body = new FormData();
+    body.append('file', file);
+    const res = await fetch(`${this.baseUrl}/v1/projects/${this.projectId}/assets`, {
+      method: 'POST', body,
+    });
+    if (!res.ok) {
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.message ?? `upload failed: ${res.status}`);
+    }
+    return res.json();   // { ref, mime, bytes }
+  }
+
+  /** Where the editor loads an uploaded asset from. */
+  assetUrl(ref) { return `${this.baseUrl}/v1/assets/${encodeURIComponent(ref)}`; }
+
   /** docs/api.md — cut a checkpoint and return generated artifacts. */
   async generate() {
     await this.flush();

@@ -109,7 +109,8 @@ export class Store {
 
   /** Next free ordinal name for a type, so defaults never collide. */
   nextName(type) {
-    const label = { rect: 'Rectangle', ellipse: 'Ellipse', text: 'Text', image: 'Image' }[type] ?? 'Node';
+    const label = { rect: 'Rectangle', ellipse: 'Ellipse', triangle: 'Triangle',
+                    line: 'Line', text: 'Text', image: 'Image' }[type] ?? 'Node';
     const taken = new Set(this.nodes().map((n) => n.name.toLowerCase()));
     let i = 1;
     while (taken.has(`${label} ${i}`.toLowerCase())) i += 1;
