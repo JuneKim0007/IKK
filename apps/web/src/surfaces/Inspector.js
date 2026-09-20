@@ -131,32 +131,56 @@ export class Inspector extends BaseElement {
     return g;
   }
 
+  /**
+   * One swatch grid, used by fill, stroke and text colour. Separate lists per
+   * property is how you end up able to stroke in a colour your text cannot be.
+   */
   _swatchRow(label, current, onPick, { allowNone = false } = {}) {
     const wrap = document.createElement('div');
     wrap.innerHTML = `<p class="sub">${label}</p>`;
-    const sws = document.createElement('div');
-    sws.className = 'swatches';
 
-    if (allowNone) {
-      const none = document.createElement('button');
-      none.className = 'swatch swatch-none';
-      none.title = 'None';
-      none.setAttribute('aria-label', `${label}: none`);
-      none.setAttribute('aria-pressed', String(current == null));
-      none.addEventListener('click', () => onPick(null));
-      sws.appendChild(none);
-    }
-    for (const hex of PALETTE) {
+    const swatch = (hex) => {
       const b = document.createElement('button');
+      b.type = 'button';
       b.className = 'swatch';
       b.style.background = hex;
       b.title = hex;
       b.setAttribute('aria-label', `${label} ${hex}`);
       b.setAttribute('aria-pressed', String(current === hex));
       b.addEventListener('click', () => onPick(normalizeColor(hex)));
-      sws.appendChild(b);
+      return b;
+    };
+
+    for (const [name, row] of Object.entries(PALETTE)) {
+      const line = document.createElement('div');
+      line.className = 'swatches';
+      if (name === 'neutral' && allowNone) {
+        const none = document.createElement('button');
+        none.type = 'button';
+        none.className = 'swatch swatch-none';
+        none.title = 'None';
+        none.setAttribute('aria-label', `${label}: none`);
+        none.setAttribute('aria-pressed', String(current == null));
+        none.addEventListener('click', () => onPick(null));
+        line.appendChild(none);
+      }
+      for (const hex of row) line.appendChild(swatch(hex));
+      wrap.appendChild(line);
     }
-    wrap.appendChild(sws);
+
+    // A colour off the palette is still legal in the contract, so it must be
+    // reachable and must show as selected when it is in use.
+    const custom = document.createElement('div');
+    custom.className = 'custom-row';
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = current ?? '#000000';
+    input.setAttribute('aria-label', `${label}: custom colour`);
+    input.addEventListener('input', () => onPick(normalizeColor(input.value)));
+    custom.append(input, Object.assign(document.createElement('span'),
+      { className: 'sub', textContent: current ?? 'none' }));
+    wrap.appendChild(custom);
+
     return wrap;
   }
 
@@ -188,6 +212,15 @@ export class Inspector extends BaseElement {
           n.stroke = width === 0 ? null
             : { color: n.stroke?.color ?? '#1B1D1C', width };
         })));
+    }
+
+    // An absent control looks like a missing feature unless it says why.
+    if (!cap.stroke && node.type === 'triangle') {
+      const why = document.createElement('p');
+      why.className = 'hint hint-sm';
+      why.textContent = 'No outline: CSS clips a border off a triangle while Compose draws it, '
+        + 'so the two surfaces would disagree. Outlined triangles need a drawn path on both.';
+      g.appendChild(why);
     }
 
     if (cap.radius) {
@@ -236,6 +269,13 @@ export class Inspector extends BaseElement {
 
     g.appendChild(this._number('Size', node.text.size,
       (v) => store.update(node.id, (n) => { n.text = { ...n.text, size: Math.max(1, v) }; })));
+    g.appendChild(this._swatchRow('Colour', node.text.color, (hex) =>
+      store.update(node.id, (n) => {
+        // Text with no colour is invisible, which is a design error rather
+        // than a state — §9 makes text.color non-nullable.
+        if (hex) n.text = { ...n.text, color: hex };
+      })));
+
     g.appendChild(this._number('Weight', node.text.weight,
       (v) => store.update(node.id, (n) => {
         n.text = { ...n.text, weight: Math.min(900, Math.max(100, Math.round(v / 100) * 100)) };

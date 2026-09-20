@@ -10,10 +10,24 @@ export const SCHEMA_VERSION = 1;
 export const REFERENCE = { w: 375, h: 667, unit: 'dp' };
 export const LINE_HEIGHT_RATIO = 1.3;
 
-export const PALETTE = [
-  '#65558F', '#4C6FBF', '#2E8B74', '#B4772A',
-  '#C0504D', '#5E6462', '#E8E3F0', '#FFFFFF',
-];
+/**
+ * The default palette. One list, used by fill, stroke and text colour alike.
+ *
+ * Three separate colour lists is how a tool ends up where you can stroke a
+ * shape in a green your text can never be. The rows are a neutral ramp and a
+ * hue set, in that order, because a designer reaches for a neutral far more
+ * often than a hue and the ramp should be where the eye lands first.
+ *
+ * Every value is uppercase, because json_contract.md §6 normalises to
+ * uppercase and two spellings of one colour checksum differently.
+ */
+export const PALETTE = {
+  neutral: ['#000000', '#1B1D1C', '#5E6462', '#9BA19E', '#D6D9D7', '#FFFFFF'],
+  hue:     ['#65558F', '#4C6FBF', '#2E8B74', '#B4772A', '#C0504D', '#8E4DA8'],
+};
+
+/** Flat form, for code that just needs "is this one of ours". */
+export const PALETTE_COLORS = [...PALETTE.neutral, ...PALETTE.hue];
 
 const COLOR = /^#[0-9A-F]{6}([0-9A-F]{2})?$/;
 

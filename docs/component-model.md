@@ -255,6 +255,21 @@ that source is the only field in the contract that refers to bytes the
 contract does not contain. Keep image special rather than generalising a
 `source` onto everything.
 
+### One palette, not three
+
+Fill, stroke and text colour all read `PALETTE` in
+`apps/web/src/contract/schema.js`. Three separate lists is how a tool ends up
+where you can stroke a shape in a green your text can never be — the
+inconsistency is invisible until someone tries to match them.
+
+It is two rows: a neutral ramp (black → white) and a hue set, in that order,
+because a designer reaches for a neutral far more often than a hue. A custom
+picker sits under both, because a colour off the palette is still legal in the
+contract and so must be reachable and must show as selected when in use.
+
+All values are uppercase: `json_contract.md` §6 normalises to uppercase, and
+two spellings of one colour checksum differently.
+
 ### The base class does not grow. The predicate table does.
 
 The temptation is a `ShapeNode` superclass for rect/ellipse/triangle/line. It
