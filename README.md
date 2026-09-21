@@ -1,3 +1,12 @@
+### JetBrain X NYUAD HACKATHON TOP 5 Finalist !!!
+
+The idea is simple: UI divergence is one of the most common problems for multi-platform applications.
+
+Thus, We wanted to build a cross-disciplinary platform for both developers and designers to ensure that both iOS and Android have the same designs.
+
+Whether it is a wrong color palette, misaligned button sizes, or incorrect placement, the project aims to solve this by generating a single source of truth .json file containing the visual specifications of the UI layouts, which is then converted into machine-readable .kt files to maintain consistency. 
+The project was specifically designed around Kotlin ecosystem.
+
 <p align="center">
   <img src="docs/assets/ikk-hero.svg" alt="IKK Contract Studio — one source, every surface" width="100%">
 </p>
